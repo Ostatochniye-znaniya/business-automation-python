@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Проверка остаточных знаний</title>
+  <link rel="stylesheet" href="static/main.css">
+</head>
+<body>
+  <aside class="navbar">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <span>МОСКОВСКИЙ<br>ПОЛИТЕХ</span>
+    </div>
+    <div class="line"></div>
+    <h1>Проверка остаточных знаний</h1>
+    <div class="profile">
+      <div class="avatar"></div>
+      <div>
+        <strong>Иванов</strong>
+        <span>Иван Иванович</span>
+      </div>
+    </div>
+    <nav id="tabs" class="tabs">
+      <a href="#" class="nav-item">Главная</a>
+      <a href="#" class="nav-item">Приказы</a>
+      <a href="#" class="nav-item">Списки рекомендуемых групп</a>
+      <a href="#" class="nav-item">Отчеты</a>
+      <a href="#" class="nav-item active">Настройки доступа</a>
+    </nav>
+  </aside>
+
+  <main class="workspace">
+    <div class="content-card">
+      <header class="card-header">
+        <h2>Настройки доступа</h2>
+        <div class="header-actions">
+          <button class="btn btn-primary" type="button">Настройка ролей</button>
+          <button class="btn btn-primary" type="button">Настройка дат</button>
+        </div>
+      </header>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label>Роль:</label>
+          <select class="filter-select">
+            <option value="">Не выбрано</option>
+            <option value="teacher">Преподаватель</option>
+            <option value="head">Руководитель подразделения</option>
+            <option value="guest">Гость</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Факультет/институт:</label>
+          <select class="filter-select">
+            <option value="">Не выбрано</option>
+            <option value="fit">ФИТ</option>
+            <option value="fem">ФЭМ</option>
+            <option value="fht">ФХТ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <button class="sort-button" data-column="fio" data-direction="asc">
+                  ФИО <span class="sort-arrow">↓</span>
+                </button>
+              </th>
+              <th>Роль в системе</th>
+              <th>Факультет/институт</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="access-table">
+            <tr>
+              <td>Иванов Иван Иванович</td>
+              <td>Преподаватель</td>
+              <td>ФИТ</td>
+              <td><button class="btn-link">Изменить</button></td>
+            </tr>
+            <tr>
+              <td>Петров Петр Петрович</td>
+              <td>Преподаватель</td>
+              <td>ФИТ</td>
+              <td><button class="btn-link">Изменить</button></td>
+            </tr>
+            <tr>
+              <td>Сидоров Сидор Сидорович</td>
+              <td>Руководитель подразделения</td>
+              <td>ФИТ</td>
+              <td><button class="btn-link">Изменить</button></td>
+            </tr>
+            <tr>
+              <td>Алексеев Алексей Алексеевич</td>
+              <td>Гость</td>
+              <td>ФИТ</td>
+              <td><button class="btn-link">Изменить</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-footer">
+          <button class="btn-link btn-add">Добавить</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script>
+    const toast = document.getElementById('toast');
+    let currentDirection = 'asc';
+
+    function notify(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      window.setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    // Сортировка таблицы
+    document.querySelector('.sort-button').addEventListener('click', function() {
+      const table = document.querySelector('table');
+      const tbody = document.getElementById('access-table');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const arrow = this.querySelector('.sort-arrow');
+      
+      // Меняем направление
+      currentDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+      
+      // Обновляем стрелку
+      arrow.textContent = currentDirection === 'asc' ? '↓' : '↑';
+      
+      // Сортируем строки
+      rows.sort((a, b) => {
+        const textA = a.cells[0].textContent.trim();
+        const textB = b.cells[0].textContent.trim();
+        
+        if (currentDirection === 'asc') {
+          return textA.localeCompare(textB, 'ru');
+        } else {
+          return textB.localeCompare(textA, 'ru');
+        }
+      });
+      
+      // Перерисовываем таблицу
+      rows.forEach(row => tbody.appendChild(row));
+      
+      notify(`Сортировка по ФИО: ${currentDirection === 'asc' ? 'по возрастанию' : 'по убыванию'}`);
+    });
+
+    // Пример обработки кнопок
+    document.querySelectorAll('.btn-link').forEach(btn => {
+      btn.addEventListener('click', () => {
+        notify('Редактирование доступа');
+      });
+    });
+
+    document.querySelector('.btn-add').addEventListener('click', () => {
+      notify('Добавление нового пользователя');
+    });
+  </script>
+</body>
+</html>
