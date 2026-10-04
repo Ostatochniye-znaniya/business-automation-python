@@ -1,4 +1,7 @@
 from fastapi import APIRouter
 
-# Domain routes will be included when their use cases are implemented.
+from app.modules.periods.router import router as periods_router
+
+# Domain routes are included as their use cases are implemented.
 api_router = APIRouter()
+api_router.include_router(periods_router)
