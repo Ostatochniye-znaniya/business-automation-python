@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 
 from .config import config_by_name
 from .extensions import db, migrate
@@ -11,10 +11,8 @@ def create_app(config_name: str = "development") -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
 
-    from .api import api_bp
-    app.register_blueprint(api_bp, url_prefix="/api")
-
-    from .web import web_bp
-    app.register_blueprint(web_bp)
+    @app.get("/api/health")
+    def health():
+        return jsonify({"status": "OK"})
 
     return app
