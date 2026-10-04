@@ -6,6 +6,7 @@ from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import configure_logging
+from app.db.base import register_models
 from app.db.session import engine
 
 
@@ -18,6 +19,7 @@ async def lifespan(application: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.LOG_LEVEL)
+    register_models()
     application = FastAPI(
         title=settings.APP_NAME, version="0.1.0", debug=settings.DEBUG, lifespan=lifespan
     )
