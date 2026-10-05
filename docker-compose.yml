@@ -1,62 +1,32 @@
 services:
-  flask:
-    image: ${FLASK_IMAGE:-ghcr.io/kapkapkin/business-automation:latest}
+  backend:
     build: .
-    container_name: ba-flask
-    restart: always
-    env_file:
-      - .env
-    expose:
-      - "5000"
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    networks:
-      - ba-network
-      - app-network
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  migrate:
-    image: ${FLASK_IMAGE:-ghcr.io/kapkapkin/business-automation:latest}
-    build: .
-    command: ["flask", "--app", "run:app", "db", "upgrade"]
-    env_file:
-      - .env
+    env_file: .env
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - ba-network
-
-  db:
-    image: mysql:9.1
-    container_name: ba-mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-    volumes:
-      - ba_db_data:/var/lib/mysql
-    expose:
-      - "3306"
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD"]
-      interval: 5s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
       timeout: 5s
-      retries: 20
-    networks:
-      - ba-network
-
+      retries: 5
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 volumes:
-  ba_db_data:
-
-networks:
-  ba-network:
-    name: ba-network
-  app-network:
-    name: app-network
-    external: true
+  mysql_data:
