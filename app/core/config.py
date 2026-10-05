@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api"
     DATABASE_URL: str = "mysql+asyncmy://knowledge:knowledge@localhost:3306/knowledge_app"
     LOG_LEVEL: str = "INFO"
+    SERVE_FRONTEND: bool = False
 
 
 @lru_cache
