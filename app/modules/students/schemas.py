@@ -7,6 +7,10 @@ class StudentCreate(BaseModel):
     group_id: int = Field(gt=0)
 
 
+class StudentUpdate(StudentCreate):
+    pass
+
+
 class StudentRead(StudentCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
