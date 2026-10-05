@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
 from app.core.config import get_settings
@@ -29,6 +31,12 @@ def create_app() -> FastAPI:
     @application.get("/health", tags=["health"])
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    # Статика монтируется только по флагу: mount("/") перехватывает все пути,
+    # добавленные после create_app(), и ломает регистрацию маршрутов в тестах.
+    if settings.SERVE_FRONTEND:
+        frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+        application.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
     return application
 

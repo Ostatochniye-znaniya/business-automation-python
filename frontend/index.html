@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Остаточные знания</title>
+    <script>
+      (function () {
+        if (localStorage.getItem("theme") === "dark") {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/components.css" />
+  </head>
+  <body>
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="workspace">
+      <header class="workspace__header">
+        <h1>Главная</h1>
+      </header>
+      <section class="workspace__content">
+        <p class="empty">Содержимое страницы будет добавлено отдельной задачей.</p>
+      </section>
+    </main>
+    <script src="/js/layout.js"></script>
+    <script src="/js/api.js"></script>
+  </body>
+</html>

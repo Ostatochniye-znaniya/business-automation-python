@@ -1,0 +1,123 @@
+.table {
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.table th {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background-color: var(--accent-soft);
+}
+
+.button {
+  padding: 8px 14px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.button--primary {
+  color: #ffffff;
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.button--primary:hover {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.button--secondary {
+  background-color: transparent;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field__label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.field__input {
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--text);
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.field__input:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  color: var(--muted);
+  font-size: 13px;
+  background-color: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.badge--success {
+  color: var(--success);
+  background-color: transparent;
+  border-color: var(--success);
+}
+
+.badge--warning {
+  color: var(--warning);
+  background-color: transparent;
+  border-color: var(--warning);
+}
+
+.badge--danger {
+  color: var(--danger);
+  background-color: transparent;
+  border-color: var(--danger);
+}
+
+.empty {
+  padding: 40px;
+  color: var(--muted);
+  text-align: center;
+  background-color: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
