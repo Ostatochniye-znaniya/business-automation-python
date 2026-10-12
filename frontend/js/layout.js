@@ -43,7 +43,14 @@ function renderSidebar() {
   }).join("");
 
   sidebar.innerHTML =
-    '<div class="sidebar__title">Остаточные знания</div>' +
+    '<div class="sidebar__brand">' +
+    '<img class="sidebar__logo" src="../assets/polytech_logo_fordark 1.png" alt="Московский Политех" />' +
+    "</div>" +
+    '<div class="sidebar__project">Проверка остаточных<br />знаний</div>' +
+    '<div class="sidebar__profile">' +
+    '<div class="sidebar__avatar" aria-hidden="true"></div>' +
+    '<div class="sidebar__profile-name">Иванов<br />Иван Иванович</div>' +
+    "</div>" +
     '<nav class="sidebar__nav">' + links + "</nav>" +
     '<div class="sidebar__footer">' +
     '<button class="button button--secondary" type="button" id="theme-toggle"></button>' +
