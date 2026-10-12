@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Приказы — Остаточные знания</title>
+    <script>
+      (function () {
+        if (localStorage.getItem("theme") === "dark") {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/layout.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/pages/orders.css" />
+  </head>
+  <body>
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="workspace">
+      <header class="workspace__header orders-header">
+        <h1 id="page-title">Приказы</h1>
+        <div class="orders-toolbar">
+          <button class="button button--primary" type="button" id="new-order-btn">＋ Сформировать новый приказ</button>
+        </div>
+      </header>
+
+      <section class="workspace__content orders-content">
+        <label class="orders-search">
+          <span aria-hidden="true">⌕</span>
+          <input id="orders-search" type="search" placeholder="Введите сюда" autocomplete="off" />
+        </label>
+
+        <div class="orders-table-wrap" id="orders-table-wrap">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th scope="col">№</th>
+                <th scope="col">Название</th>
+                <th scope="col">Учебный год</th>
+                <th scope="col">Семестр</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body"></tbody>
+          </table>
+        </div>
+        <p class="orders-empty" id="orders-empty" hidden>Ничего не найдено.</p>
+      </section>
+    </main>
+
+    <dialog class="order-dialog" id="order-dialog">
+      <div class="dialog-heading">
+        <div><h2 id="dialog-title">Приказы</h2><span id="dialog-number">Приказ №001</span></div>
+        <button class="dialog-close" type="button" aria-label="Закрыть окно" data-close-dialog="order-dialog">×</button>
+      </div>
+      <div class="dialog-body" id="dialog-body"></div>
+    </dialog>
+
+    <dialog class="order-dialog" id="create-dialog">
+      <div class="dialog-heading">
+        <h2>Сформировать новый приказ</h2>
+        <button class="dialog-close" type="button" aria-label="Закрыть окно" data-close-dialog="create-dialog">×</button>
+      </div>
+      <form class="create-form draft-edit-form" id="create-form">
+        <label class="draft-field"><span>Название приказа</span><input type="text" name="title" required placeholder="Введите название приказа" /></label>
+        <div class="draft-field-grid">
+          <label class="draft-field"><span>Учебный год</span><input type="text" name="year" required value="2025" /></label>
+          <label class="draft-field"><span>Семестр</span><select name="semester"><option>Весна</option><option>Осень</option></select></label>
+          <label class="draft-field"><span>Дата приказа</span><input type="date" name="date" required /></label>
+        </div>
+        <h3 class="draft-section-title">Ответственные сотрудники</h3>
+        <label class="draft-field"><span>Начальник отдела контроля образовательного процесса (ФИО)</span><input type="text" name="bossControl" value="Иванов Иван Иванович" /></label>
+        <label class="draft-field"><span>Начальник центра по учебно-методической работе (ФИО)</span><input type="text" name="bossMethod" value="Иванов Иван Иванович" /></label>
+        <h3 class="draft-section-title">Сроки предоставления отчётов</h3>
+        <div class="draft-field-grid">
+          <label class="draft-field"><span>Сводный отчёт по результатам проверки до</span><input type="date" name="checkSummaryDate" value="2024-07-19" /></label>
+          <label class="draft-field"><span>Сводный отчёт по результатам анкетирования до</span><input type="date" name="surveySummaryDate" value="2024-06-30" /></label>
+          <label class="draft-field"><span>Отчёты по результатам проверки до</span><input type="date" name="reportsDate" value="2024-06-28" /></label>
+        </div>
+        <fieldset class="survey-time-field">
+          <legend>Время анкетирования</legend>
+          <label class="survey-choice"><input type="radio" name="surveyMode" value="exact" checked /> Точное время</label>
+          <div class="survey-date-fields" data-survey-fields="exact"><label class="draft-field"><span>День анкетирования</span><input type="date" name="surveyDate" value="2024-06-04" /></label></div>
+          <label class="survey-choice"><input type="radio" name="surveyMode" value="range" /> Диапазон дат</label>
+          <div class="survey-date-fields" data-survey-fields="range"><label class="draft-field"><span>День начала</span><input type="date" name="surveyStart" value="2024-06-04" /></label><label class="draft-field"><span>День окончания</span><input type="date" name="surveyEnd" value="2024-06-04" /></label></div>
+        </fieldset>
+        <div class="create-actions dialog-actions">
+          <button class="button button--secondary" type="button" id="save-draft-btn">Сохранить как черновик</button>
+          <button class="button button--primary" type="submit">Создать приказ</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="../js/layout.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/pages/orders.js"></script>
+  </body>
+</html>
