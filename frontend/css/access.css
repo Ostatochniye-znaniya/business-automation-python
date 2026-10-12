@@ -1,5 +1,8 @@
 .access-page {
-  max-width: 1280px;
+  width: min(1196px, calc(100% - 64px));
+  max-width: 1196px;
+  margin: 19.8vh auto 0;
+  padding: 0;
 }
 
 .workspace__header:has(+ .access-page) {
@@ -7,23 +10,29 @@
 }
 
 .access-panel {
-  padding: 28px;
+  padding: 16px 24px 24px;
   background: #2e2e2e;
-  border-radius: 24px;
+  border-radius: 22px;
   box-shadow: 0 20px 36px rgba(0, 0, 0, 0.3);
 }
 
 .access-panel__heading {
-  margin-bottom: 12px;
+  float: left;
+  width: 40%;
+  margin: 0 22px 12px 0;
 }
 
 .access-panel__heading h1 {
   color: #fff;
-  font-size: 29px;
+  font-size: clamp(24px, 2.1vw, 40px);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .access-panel__toolbar {
   display: flex;
+  width: calc(60% - 22px);
+  justify-content: flex-end;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
@@ -35,8 +44,8 @@
 }
 
 .icon-button {
-  width: 34px;
-  height: 34px;
+  width: clamp(32px, 2.1vw, 40px);
+  height: clamp(32px, 2.1vw, 40px);
   padding: 0;
   color: #f6f6f6;
   font-size: 22px;
@@ -52,6 +61,13 @@
   background: #aeb9ff;
 }
 
+.icon-button img {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: auto;
+}
+
 .access-panel__add,
 .access-panel__select {
   height: 34px;
@@ -62,28 +78,35 @@
 }
 
 .access-panel__add {
-  flex: 1;
-  max-width: 330px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: clamp(220px, 16.67vw, 320px);
+  flex: 0 1 clamp(220px, 16.67vw, 320px);
+  white-space: nowrap;
   margin-left: 4px;
   color: #252525;
   background: #aeb9ff;
 }
 
 .access-panel__add span {
-  margin-right: 22px;
+  margin: 0;
   font-size: 22px;
   font-weight: 400;
-  vertical-align: -2px;
+  line-height: 1;
 }
 
 .access-panel__select {
-  width: 190px;
-  margin-left: auto;
+  width: clamp(120px, 10.42vw, 200px);
+  flex: 0 1 clamp(120px, 10.42vw, 200px);
+  margin-left: 0;
   color: #252525;
   background: #d6a4ff;
 }
 
 .access-panel__search {
+  clear: both;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -104,16 +127,16 @@
 
 .access-table {
   width: 100%;
-  min-width: 940px;
+  min-width: 0;
   table-layout: fixed;
   border-collapse: collapse;
 }
 
 .access-table th,
 .access-table td {
-  padding: 10px 8px;
+  padding: 8px 5px;
   color: #fff;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
@@ -126,7 +149,7 @@
 }
 
 .access-table td {
-  height: 88px;
+  height: 62px;
 }
 
 .access-table tbody tr:nth-child(even) {
@@ -358,6 +381,11 @@
 @media (max-width: 900px) {
   .access-panel {
     padding: 16px;
+  }
+
+  .access-page {
+    margin-top: 32px;
+    padding: 0 16px;
   }
 
   .access-panel__toolbar {
