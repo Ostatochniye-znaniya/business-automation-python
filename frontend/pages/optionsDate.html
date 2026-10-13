@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Проверка остаточных знаний</title>
+  <link rel="stylesheet" href="../css/pages/optionsDate.css" />
+</head>
+<body>
+  <aside class="navbar">
+    <div class="logo">
+      <img class="logo-icon" src="../assets/logo_retained_knowledge.png" alt="Логотип">
+      <span>МОСКОВСКИЙ<br>ПОЛИТЕХ</span>
+    </div>
+    <div class="line"></div>
+    <h1>Проверка остаточных знаний</h1>
+    <div class="profile">
+      <div class="avatar"></div>
+      <div>
+        <strong>Иванов</strong>
+        <span>Иван Иванович</span>
+      </div>
+    </div>
+    <nav id="tabs" class="tabs">
+      <a href="#" class="nav-item">Главная</a>
+      <a href="#" class="nav-item">Приказы</a>
+      <a href="#" class="nav-item">Списки рекомендуемых групп</a>
+      <a href="#" class="nav-item">Отчеты</a>
+      <a href="#" class="nav-item active">Настройки доступа</a>
+    </nav>
+  </aside>
+
+  <main class="workspace">
+    <div class="content-card">
+      <header class="card-header">
+        <h2>Настройки доступа</h2>
+        <div class="header-actions">
+          <button class="btn btn-primary" type="button">Настройка ролей</button>
+          <button class="btn btn-primary btn-active" type="button">Настройка дат</button>
+        </div>
+      </header>
+
+      <div class="semester-filter">
+        <label>Семестр</label>
+        <select class="filter-select">
+          <option value="spring-2025">Весна 2025</option>
+          <option value="autumn-2024">Осень 2024</option>
+          <option value="spring-2024">Весна 2024</option>
+        </select>
+      </div>
+
+      <div class="dates-grid">
+        <div class="dates-section">
+          <h3>Списки, графики и анкетирование</h3>
+          <div class="date-row">
+            <span class="date-label">Формирование списков студентов</span>
+            <div class="date-range">
+              <input type="date" class="date-input" value="2025-01-01">
+              <span class="date-separator">—</span>
+              <input type="date" class="date-input" value="2025-01-01">
+            </div>
+          </div>
+          <div class="date-row">
+            <span class="date-label">Формирование графиков тестирования</span>
+            <div class="date-range">
+              <input type="date" class="date-input" value="2025-01-01">
+              <span class="date-separator">—</span>
+              <input type="date" class="date-input" value="2025-01-01">
+            </div>
+          </div>
+          <div class="date-row">
+            <span class="date-label">Сроки проведения анкетирования</span>
+            <div class="date-range">
+              <input type="date" class="date-input" value="2025-01-01">
+              <span class="date-separator">—</span>
+              <input type="date" class="date-input" value="2025-01-01">
+            </div>
+          </div>
+        </div>
+
+        <div class="dates-section">
+          <h3>Отчёты</h3>
+          <div class="date-row">
+            <span class="date-label">Сдача электронных отчётов до</span>
+            <input type="date" class="date-input-single" value="2025-01-01">
+          </div>
+          <div class="date-row">
+            <span class="date-label">Сдача бумажных отчётов до</span>
+            <input type="date" class="date-input-single" value="2025-01-01">
+          </div>
+          <div class="date-row">
+            <span class="date-label">Подготовка сводного отчёта до</span>
+            <input type="date" class="date-input-single" value="2025-01-01">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-secondary" type="button">Отмена</button>
+        <button class="btn btn-primary" type="button">Сохранить</button>
+      </div>
+    </div>
+  </main>
+  <script src="../js/style_switching.js"></script>
+  <script src="../js/pages/option.js"></script>
+</body>
+</html>
