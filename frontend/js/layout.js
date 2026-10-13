@@ -4,6 +4,7 @@ const SECTIONS = [
   { title: "Списки<br>рекомендуемых<br>групп", href: "/pages/groups.html" },
   { title: "Отчёты", href: "/pages/reports.html" },
   { title: "Настройки<br>доступа", href: "/pages/access.html" },
+  {title: "Настройки<br>системы", href: "/pages/options.html" }
 ];
 
 const THEME_KEY = "theme";

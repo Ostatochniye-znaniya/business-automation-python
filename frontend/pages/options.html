@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Проверка остаточных знаний</title>
+  <link rel="stylesheet" href="../css/pages/options.css" />
+</head>
+<body>
+  <aside class="navbar">
+    <div class="logo">
+      <img class="logo-icon" src="../assets/logo_retained_knowledge.png" alt="Логотип">
+      <span>МОСКОВСКИЙ<br>ПОЛИТЕХ</span>
+    </div>
+    <div class="line"></div>
+    <h1>Проверка остаточных знаний</h1>
+    <div class="profile">
+      <div class="avatar"></div>
+      <div>
+        <strong>Иванов</strong>
+        <span>Иван Иванович</span>
+      </div>
+    </div>
+    <nav id="tabs" class="tabs">
+      <a href="#" class="nav-item">Главная</a>
+      <a href="#" class="nav-item">Приказы</a>
+      <a href="#" class="nav-item">Списки рекомендуемых групп</a>
+      <a href="#" class="nav-item">Отчеты</a>
+      <a href="#" class="nav-item active">Настройки доступа</a>
+    </nav>
+  </aside>
+
+  <main class="workspace">
+    <div class="content-card">
+      <header class="card-header">
+        <h2>Настройки доступа</h2>
+        <div class="header-actions">
+          <button class="btn btn-primary" type="button">Настройка ролей</button>
+          <button class="btn btn-primary" type="button">Настройка дат</button>
+        </div>
+      </header>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label>Роль:</label>
+          <select class="filter-select">
+            <option value="">Не выбрано</option>
+            <option value="teacher">Преподаватель</option>
+            <option value="head">Руководитель подразделения</option>
+            <option value="guest">Гость</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Факультет/институт:</label>
+          <select class="filter-select">
+            <option value="">Не выбрано</option>
+            <option value="fit">ФИТ</option>
+            <option value="fem">ФЭМ</option>
+            <option value="fht">ФХТ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <button class="sort-button" data-column="fio" data-direction="asc">
+                  ФИО <span class="sort-arrow">↓</span>
+                </button>
+              </th>
+              <th>Роль в системе</th>
+              <th>Факультет/институт</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="access-table">
+            <tr>
+              <td>Иванов Иван Иванович</td>
+              <td>Преподаватель</td>
+              <td>ФИТ</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-link btn-edit" data-name="Иванов Иван Иванович" data-position="Преподаватель" data-department="ФИТ" data-role="Преподаватель">Изменить</button>
+                  <button class="btn-link btn-delete" data-name="Иванов Иван Иванович">Удалить</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>Петров Петр Петрович</td>
+              <td>Преподаватель</td>
+              <td>ФИТ</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-link btn-edit" data-name="Петров Петр Петрович" data-position="Преподаватель" data-department="ФИТ" data-role="Преподаватель">Изменить</button>
+                  <button class="btn-link btn-delete" data-name="Петров Петр Петрович">Удалить</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>Сидоров Сидор Сидорович</td>
+              <td>Руководитель подразделения</td>
+              <td>ФИТ</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-link btn-edit" data-name="Сидоров Сидор Сидорович" data-position="Руководитель подразделения" data-department="ФИТ" data-role="Руководитель подразделения">Изменить</button>
+                  <button class="btn-link btn-delete" data-name="Сидоров Сидор Сидорович">Удалить</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>Алексеев Алексей Алексеевич</td>
+              <td>Гость</td>
+              <td>ФИТ</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-link btn-edit" data-name="Алексеев Алексей Алексеевич" data-position="Гость" data-department="ФИТ" data-role="Гость">Изменить</button>
+                  <button class="btn-link btn-delete" data-name="Алексеев Алексей Алексеевич">Удалить</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-footer">
+          <button class="btn-link btn-add" id="btn-add-user">Добавить</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Модальное окно редактирования/добавления -->
+  <div class="modal-overlay" id="modal-edit">
+    <div class="modal modal-edit">
+      <div class="modal-header">
+        <h3>Настройки доступа</h3>
+        <span class="modal-subtitle">Изменение доступа</span>
+        <div class="modal-header-actions">
+          <button class="modal-icon-btn modal-icon-trash" type="button" title="Удалить">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+          <button class="modal-icon-btn modal-icon-close" type="button" title="Закрыть">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Имя</label>
+            <input type="text" class="form-input" id="edit-name" placeholder="Введите имя">
+          </div>
+          <div class="form-group">
+            <label>Должность</label>
+            <select class="form-select" id="edit-position">
+              <option value="Преподаватель">Преподаватель</option>
+              <option value="Руководитель подразделения">Руководитель подразделения</option>
+              <option value="Гость">Гость</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Подразделение</label>
+            <select class="form-select" id="edit-department">
+              <option value="ФИТ">ФИТ</option>
+              <option value="ФЭМ">ФЭМ</option>
+              <option value="ФХТ">ФХТ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Роль в системе</label>
+            <select class="form-select" id="edit-role">
+              <option value="Преподаватель">Преподаватель</option>
+              <option value="Руководитель подразделения">Руководитель подразделения</option>
+              <option value="Гость">Гость</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-save" type="button" id="btn-save-user">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно подтверждения удаления -->
+  <div class="modal-overlay" id="modal-delete">
+    <div class="modal modal-delete">
+      <div class="modal-body modal-body-centered">
+        <p class="modal-question">Вы уверены, что хотите удалить данного пользователя из системы?</p>
+      </div>
+      <div class="modal-footer modal-footer-two">
+        <button class="btn btn-primary" type="button" id="btn-confirm-delete">Удалить</button>
+        <button class="btn btn-primary" type="button" id="btn-cancel-delete">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно успешного сохранения -->
+  <div class="modal-overlay" id="modal-success">
+    <div class="modal modal-success">
+      <div class="modal-body modal-body-centered">
+        <div class="success-message">
+          <div class="success-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <p class="modal-question">Настройки доступа успешно сохранены!</p>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-two">
+        <button class="btn btn-primary" type="button" id="btn-done">Готово!</button>
+        <button class="btn btn-primary" type="button" id="btn-cancel-success">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <!-- Подключаем скрипты -->
+   <script src="../js/style_switching.js"></script>
+  <script src="../js/pages/options.js"></script>
+</body>
+</html>
