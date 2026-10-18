@@ -117,3 +117,23 @@ async def test_startup_respects_demo_flag_and_disposes_engine(application, monke
     else:
         seed.assert_not_awaited()
     dispose.assert_awaited_once()
+
+
+async def test_existing_demo_database_gets_recommendations_without_resetting_user_choices(
+    db_session, monkeypatch
+):
+    from app.db import demo
+    from app.modules.groups.recommendation_models import GroupRecommendation
+
+    initialize = demo._seed_demo_recommendations
+    monkeypatch.setattr(demo, "_seed_demo_recommendations", AsyncMock())
+    await seed_demo_data(db_session)
+    monkeypatch.setattr(demo, "_seed_demo_recommendations", initialize)
+    assert await seed_demo_data(db_session) is False
+    record = await db_session.scalar(select(GroupRecommendation).limit(1))
+    assert record is not None
+    identifier = record.id
+    record.recommended = False
+    await db_session.commit()
+    assert await seed_demo_data(db_session) is False
+    assert (await db_session.get(GroupRecommendation, identifier)).recommended is False

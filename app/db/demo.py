@@ -1,7 +1,7 @@
 """Opt-in development fixtures, committed atomically and never overwriting existing rows."""
 
 import logging
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -31,15 +31,19 @@ MARKER = "demo:admin"
 async def seed_demo_data(session: AsyncSession) -> bool:
     """A unique marker and one transaction make repeated starts safe."""
     marker = select(User.id).where(User.external_id == MARKER)
+    already_initialized = False
     try:
         async with session.begin():
-            if await session.scalar(marker) is not None:
+            already_initialized = await session.scalar(marker) is not None
+            if already_initialized:
+                await _seed_demo_recommendations(session)
                 logger.info("Demo data already initialized")
                 return False
             await _insert_demo_data(session)
+            await _seed_demo_recommendations(session)
     except IntegrityError:
         # Another worker may have completed the same seed while we were starting.
-        if await session.scalar(marker) is None:
+        if already_initialized or await session.scalar(marker) is None:
             raise
         return False
     logger.info("Demo data initialized")
@@ -214,3 +218,52 @@ async def _insert_demo_data(session: AsyncSession) -> None:
                     participation_status=ParticipationStatus.PASSED,
                 )
             )
+
+
+async def _seed_demo_recommendations(session: AsyncSession) -> None:
+    from app.modules.groups.recommendation_models import GroupRecommendation, RecommendationHistory
+
+    actor = await session.scalar(select(User).where(User.external_id == "demo:lpr"))
+    if actor is None:
+        return
+    memberships = (
+        await session.execute(
+            select(GroupPeriod, StudyGroup.external_id)
+            .join(StudyGroup)
+            .where(StudyGroup.external_id.in_(["demo:group:0", "demo:group:2", "demo:group:4"]))
+        )
+    ).all()
+    existing = set(
+        (
+            await session.execute(
+                select(GroupRecommendation.group_id, GroupRecommendation.period_id).where(
+                    GroupRecommendation.group_id.in_(
+                        [membership.group_id for membership, _ in memberships]
+                    )
+                )
+            )
+        ).all()
+    )
+    for membership, _ in memberships:
+        if (membership.group_id, membership.period_id) in existing:
+            continue
+        now = datetime.now(UTC).replace(tzinfo=None, microsecond=0)
+        record = GroupRecommendation(
+            group_id=membership.group_id,
+            period_id=membership.period_id,
+            recommended=True,
+            version=1,
+            changed_by_id=actor.id,
+            changed_at=now,
+        )
+        session.add(record)
+        await session.flush()
+        session.add(
+            RecommendationHistory(
+                recommendation_id=record.id,
+                recommended=True,
+                version=1,
+                changed_by_id=actor.id,
+                changed_at=now,
+            )
+        )

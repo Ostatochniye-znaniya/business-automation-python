@@ -29,6 +29,16 @@
             <select id="semester" class="field__input" disabled><option value="">Все семестры</option></select>
           </label>
         </form>
+        <p id="recommendation-access" class="section-intro"></p>
+        <div class="recommendation-toolbar">
+          <label class="field" for="list-period"><span class="field__label">Период для формирования списка</span>
+            <select id="list-period" class="field__input" disabled><option value="">Выберите период</option></select>
+          </label>
+          <div class="recommendation-actions">
+            <button id="select-visible" class="button" type="button" disabled>Рекомендовать видимые группы</button>
+            <button id="clear-visible" class="button" type="button" disabled>Снять выбор видимых групп</button>
+          </div>
+        </div>
         <p id="groups-status" role="status" aria-live="polite">Загрузка справочников…</p>
         <button id="retry" class="button" type="button" hidden>Повторить загрузку</button>
         <div class="table-scroll">
@@ -37,10 +47,23 @@
             <tbody id="groups-body"></tbody>
           </table>
         </div>
+        <div class="recommendation-actions recommendation-actions--footer">
+          <button id="save-recommendations" class="button button--primary" type="button" disabled>Сохранить изменения</button>
+          <button id="discard-recommendations" class="button" type="button" disabled>Отменить изменения</button>
+          <button id="export-recommendations" class="button" type="button" disabled>Сформировать список (CSV)</button>
+          <span id="recommendation-changes" role="status" aria-live="polite">Нет несохранённых изменений</span>
+        </div>
+        <p id="recommendation-status" class="section-status" role="status" aria-live="polite"></p>
         <p id="period-context" class="period-context"></p>
         <p class="testing-legend"><span><i class="testing-mark testing-mark--completed" aria-hidden="true">✓</i> Проведено</span><span><i class="testing-mark testing-mark--planned" aria-hidden="true">✓</i> Запланировано</span><span><i class="testing-mark testing-mark--active" aria-hidden="true">◐</i> Проводится</span><span><i class="testing-mark testing-mark--missing" aria-hidden="true">×</i> Нет назначения / отменено</span></p>
       </section>
     </main>
+    <dialog id="recommendation-history" class="recommendation-dialog" aria-labelledby="history-title">
+      <div class="recommendation-history-header"><h2 id="history-title">История рекомендаций</h2><button id="close-history" class="button" type="button" aria-label="Закрыть историю">Закрыть</button></div>
+      <p id="history-status" class="section-status" role="status"></p>
+      <button id="retry-history" class="button" type="button" hidden>Повторить загрузку истории</button>
+      <div class="table-scroll"><table class="table"><thead><tr><th>Период</th><th>Изменение</th><th>Автор</th><th>Дата</th></tr></thead><tbody id="history-body"></tbody></table></div>
+    </dialog>
     <script src="../js/layout.js"></script>
     <script src="/app-config.js"></script>
     <script src="../js/api.js"></script>

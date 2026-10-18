@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError
 from app.modules.disciplines.models import Discipline
 from app.modules.groups.models import GroupPeriod, StudyGroup, StudyProgram
+from app.modules.groups.recommendation_models import GroupRecommendation
+from app.modules.groups.recommendations import RecommendationService
 from app.modules.groups.schemas import (
     DashboardStatistics,
     GroupTestingOverview,
@@ -12,6 +14,7 @@ from app.modules.groups.schemas import (
 )
 from app.modules.periods.models import TestingPeriod
 from app.modules.testing.models import KnowledgeTest
+from app.modules.users.models import User
 
 
 class GroupService:
@@ -103,10 +106,33 @@ class GroupService:
                     status=test.status,
                 )
             )
+        recommendations = (
+            await self.session.execute(
+                select(GroupRecommendation, User.full_name)
+                .join(User, User.id == GroupRecommendation.changed_by_id)
+                .where(GroupRecommendation.group_id.in_([group.id for group in groups]))
+                .order_by(GroupRecommendation.period_id)
+            )
+        ).all()
+        by_recommendation = {group.id: [] for group in groups}
+        for record, name in recommendations:
+            by_recommendation[record.group_id].append(RecommendationService.read(record, name))
+        membership_rows = (
+            await self.session.execute(
+                select(GroupPeriod.group_id, GroupPeriod.period_id).where(
+                    GroupPeriod.group_id.in_(by_group)
+                )
+            )
+        ).all()
+        memberships = {group.id: [] for group in groups}
+        for group_id, period_id in membership_rows:
+            memberships[group_id].append(period_id)
         return [
             GroupTestingOverview(
                 **StudyGroupRead.model_validate(group).model_dump(),
                 testings=by_group[group.id],
+                recommendations=by_recommendation[group.id],
+                enrolled_period_ids=memberships[group.id],
             )
             for group in groups
         ]

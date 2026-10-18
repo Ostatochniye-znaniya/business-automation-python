@@ -28,3 +28,18 @@
   .group-filters { grid-template-columns: 1fr; }
   .group-filters .field:nth-child(n) { grid-column: auto; grid-row: auto; }
 }
+.recommendation-toolbar { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; align-items: end; gap: 16px; margin: 16px 0; }
+.recommendation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.recommendation-actions--footer { margin-top: 20px; }
+.recommendation-actions .button:disabled { opacity: .55; cursor: default; }
+#recommendation-changes { color: var(--muted); font-size: 12px; }
+.recommendation-choice { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; cursor: pointer; }
+.recommendation-choice input { width: 19px; height: 19px; accent-color: var(--accent); }
+.period-mark { min-width: 80px; }
+.recommendation-choice:has(input:disabled) { cursor: default; opacity: .65; }
+.recommendation-choice:has(input[data-dirty="true"]) { color: var(--accent); font-weight: 700; }
+.history-button { margin-top: 8px; min-height: 26px; padding: 3px 7px; font-size: 10px; }
+.recommendation-dialog { position: fixed; inset: 0; margin: auto; width: min(850px, calc(100vw - 32px)); max-height: 85vh; overflow: auto; padding: 22px; border: 0; border-radius: 14px; background: var(--panel); color: var(--text); }
+.recommendation-dialog::backdrop { background: #0007; }
+.recommendation-history-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+@media (max-width: 900px) { .recommendation-toolbar { grid-template-columns: 1fr; } }

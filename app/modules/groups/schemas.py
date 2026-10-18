@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.enums import KnowledgeTestStatus
+from app.modules.groups.recommendation_schemas import RecommendationRead
 
 
 class StudyGroupCreate(BaseModel):
@@ -43,3 +44,5 @@ class GroupTestingSummary(BaseModel):
 
 class GroupTestingOverview(StudyGroupRead):
     testings: list[GroupTestingSummary]
+    recommendations: list[RecommendationRead]
+    enrolled_period_ids: list[int]

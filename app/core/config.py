@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     SERVE_FRONTEND: bool = False
     DEMO_DATA: bool = False
+    DEV_USER_ID: int | None = Field(default=None, gt=0)
 
     @field_validator("API_PREFIX")
     @classmethod
@@ -47,6 +48,8 @@ class Settings(BaseSettings):
             raise ValueError("DEBUG must be disabled in production")
         if self.DEMO_DATA and self.APP_ENV not in {"development", "test"}:
             raise ValueError("DEMO_DATA is only supported in development and test environments")
+        if self.DEV_USER_ID is not None and self.APP_ENV not in {"development", "test"}:
+            raise ValueError("DEV_USER_ID is only supported in development and test environments")
         return self
 
 
