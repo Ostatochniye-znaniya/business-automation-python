@@ -1,6 +1,7 @@
 .git
 .venv
 .env
+.env.*
 legacy
 tests
 __pycache__

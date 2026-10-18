@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+const API_BASE = window.APP_CONFIG?.apiBase || "/api";
 
 // Пока endpoint не готов, страницу можно верстать на заглушках:
 // включите USE_MOCK и добавьте ответы в MOCKS по ключу "МЕТОД /путь".
