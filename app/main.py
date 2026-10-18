@@ -13,13 +13,19 @@ from app.core.config import get_settings
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import configure_logging
 from app.db.base import register_models
-from app.db.session import engine
+from app.db.demo import seed_demo_data
+from app.db.session import engine, session_factory
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    yield
-    await engine.dispose()
+    try:
+        if get_settings().DEMO_DATA:
+            async with session_factory() as session:
+                await seed_demo_data(session)
+        yield
+    finally:
+        await engine.dispose()
 
 
 def create_app() -> FastAPI:
@@ -47,7 +53,9 @@ def create_app() -> FastAPI:
     @application.get("/app-config.js", include_in_schema=False)
     async def frontend_config() -> Response:
         return Response(
-            "window.APP_CONFIG = " + json.dumps({"apiBase": settings.API_PREFIX}) + ";",
+            "window.APP_CONFIG = "
+            + json.dumps({"apiBase": settings.API_PREFIX, "demoData": settings.DEMO_DATA})
+            + ";",
             media_type="application/javascript",
             headers={"Cache-Control": "no-store"},
         )

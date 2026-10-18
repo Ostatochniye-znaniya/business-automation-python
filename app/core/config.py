@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "mysql+asyncmy://knowledge:knowledge@localhost:3306/knowledge_app"
     LOG_LEVEL: str = "INFO"
     SERVE_FRONTEND: bool = False
+    DEMO_DATA: bool = False
 
     @field_validator("API_PREFIX")
     @classmethod
@@ -44,6 +45,8 @@ class Settings(BaseSettings):
     def validate_debug(self) -> "Settings":
         if self.APP_ENV == "production" and self.DEBUG:
             raise ValueError("DEBUG must be disabled in production")
+        if self.DEMO_DATA and self.APP_ENV not in {"development", "test"}:
+            raise ValueError("DEMO_DATA is only supported in development and test environments")
         return self
 
 
