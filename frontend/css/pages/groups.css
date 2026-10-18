@@ -1,0 +1,13 @@
+.group-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.field__input { width: 100%; min-height: 42px; }
+.table-scroll { overflow-x: auto; }
+#groups-status[data-error="true"] { color: var(--danger); }
+select:disabled { opacity: 0.65; }
+@media (max-width: 700px) {
+  .group-filters { grid-template-columns: 1fr; }
+}

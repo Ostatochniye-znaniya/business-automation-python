@@ -44,3 +44,15 @@ function apiGet(path) {
 function apiPost(path, body) {
   return request("POST", path, body);
 }
+
+// API lists are paginated: reference data must not stop at the first 100 rows.
+async function apiGetAll(path) {
+  const items = [];
+  for (let offset = 0; ; offset += 100) {
+    const separator = path.includes("?") ? "&" : "?";
+    const page = await apiGet(`${path}${separator}offset=${offset}&limit=100`);
+    if (!Array.isArray(page)) throw new Error("Сервер вернул некорректный список");
+    items.push(...page);
+    if (page.length < 100) return items;
+  }
+}
