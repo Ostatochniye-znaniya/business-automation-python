@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Настройки доступа — Остаточные знания</title>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+  </head>
+  <body data-page="access">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="workspace">
+      <header class="workspace__header"><h1>Настройки доступа</h1></header>
+      <section class="workspace__content">
+        <p class="section-intro">Пользователи и назначенные роли в системе.</p>
+        <div class="section-filters">
+          <label class="field" for="user-search"><span class="field__label">ФИО или электронная почта</span><input id="user-search" class="field__input" type="search" placeholder="Поиск пользователя"></label>
+          <label class="field" for="user-role"><span class="field__label">Роль в системе</span><select id="user-role" class="field__input"><option value="">Все роли</option></select></label>
+        </div>
+        <p id="section-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
+        <button id="section-retry" class="button" type="button" hidden>Повторить загрузку</button>
+        <div class="table-scroll"><table class="table"><thead><tr><th scope="col">ФИО</th><th scope="col">Электронная почта</th><th scope="col">Роль в системе</th><th scope="col">Доступ</th></tr></thead><tbody id="section-rows"></tbody></table></div>
+      </section>
+    </main>
+    <script src="/js/layout.js"></script>
+    <script src="/app-config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/pages/sections.js"></script>
+  </body>
+</html>

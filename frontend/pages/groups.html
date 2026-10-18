@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Списки групп — Остаточные знания</title>
-    <script>if (localStorage.getItem("theme") === "dark") document.documentElement.dataset.theme = "dark";</script>
+    <script src="/js/theme.js"></script>
     <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="../css/layout.css">
     <link rel="stylesheet" href="../css/components.css">
@@ -13,8 +13,8 @@
   <body class="groups-page">
     <aside id="sidebar" class="sidebar"></aside>
     <main class="workspace">
+      <header class="workspace__header"><h1>Формирование списка рекомендуемых групп</h1></header>
       <section class="workspace__content">
-        <header class="workspace__header"><h1>Формирование списка рекомендуемых групп</h1></header>
         <form id="group-filters" class="group-filters" aria-label="Фильтры групп">
           <label class="field" for="faculty"><span class="field__label">Факультет / институт</span>
             <select id="faculty" class="field__input" disabled><option value="">Все факультеты</option></select>

@@ -1,10 +1,4 @@
-/* Стили страницы основаны на исходном styles.css из архива prikazy_layout_v4.
-   Общие файлы каркаса не изменяются. */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap');
-
 :root {
-  --archive-bg-top: #aeb4f3;
-  --archive-bg-bottom: #ffffff;
   --archive-primary: #5c67e8;
   --archive-primary-hover: #4e59dc;
   --archive-draft: #a44de2;
@@ -12,76 +6,6 @@
   --archive-search: #eeeeee;
 }
 
-body {
-  font-family: 'Montserrat', Arial, Helvetica, sans-serif;
-  background: linear-gradient(180deg, var(--archive-bg-top) 0 48%, var(--archive-bg-bottom) 78%);
-}
-
-/* Сайдбар визуально приближен к архивному макету, сохраняя разметку общего каркаса. */
-.sidebar {
-  width: 245px;
-  padding: 18px 24px;
-  gap: 12px;
-  background: rgba(250, 250, 250, .96);
-  border: 0;
-  border-radius: 0 14px 14px 0;
-  box-shadow: 4px 0 10px rgba(0, 0, 0, .10);
-  z-index: 2;
-}
-.sidebar__title {
-  padding: 8px 4px 16px;
-  color: #5265f4;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.35;
-  border-bottom: 1px solid #d0d0d0;
-}
-.sidebar__nav { gap: 14px; padding-top: 8px; }
-.sidebar__link {
-  padding: 0 4px;
-  border-radius: 0;
-  color: #4b4b4b;
-  font-size: 14px;
-  line-height: 1.35;
-  font-weight: 600;
-}
-.sidebar__link:hover { background: transparent; color: #5865e9; }
-.sidebar__link--active { background: transparent; color: #5865e9; font-weight: 700; }
-.sidebar__footer { border-top: 1px solid #d0d0d0; }
-.sidebar__footer .button {
-  min-height: 34px;
-  background: #eeeeee;
-  border: 1px solid #b8b8b8;
-  border-radius: 18px;
-  color: #444;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.workspace {
-  min-height: 100vh;
-  padding: 70px clamp(24px, 5vw, 88px) 40px;
-  display: block;
-}
-.orders-header,
-.orders-content {
-  width: min(1000px, 100%);
-  margin-left: auto;
-  margin-right: auto;
-  background: rgba(255, 255, 255, .98);
-  border: 0;
-  color: #333;
-}
-.orders-header {
-  min-height: 62px;
-  padding: 16px 24px 10px;
-  border-radius: 15px 15px 0 0;
-  box-shadow: 0 9px 19px rgba(0, 0, 0, .20);
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-.orders-header h1 { font-size: 20px; line-height: 24px; font-weight: 700; }
 .orders-toolbar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
 .orders-toolbar .button {
   min-height: 32px;
@@ -110,13 +34,7 @@ body {
 .orders-toolbar .button--primary:hover { background: var(--archive-primary-hover); }
 .orders-toolbar .draft-switch { min-width: 124px; background: var(--archive-draft); color: #fff; }
 .orders-toolbar .draft-switch:hover { background: var(--archive-draft-hover); }
-.orders-content {
-  min-height: 480px;
-  max-width: 1000px;
-  padding: 8px 24px 24px;
-  border-radius: 0 0 15px 15px;
-  box-shadow: 0 9px 19px rgba(0, 0, 0, .20);
-}
+
 .orders-search {
   display: flex;
   align-items: center;
@@ -181,15 +99,6 @@ body {
 .create-actions .button--primary { background: var(--archive-primary); color: #fff; }
 [hidden] { display: none !important; }
 
-html[data-theme="dark"] body { background: linear-gradient(180deg, #3a3a3a 0 48%, #3a3a3a 78%); }
-html[data-theme="dark"] .sidebar { background: #2e2e2e; box-shadow: 4px 0 10px rgba(0,0,0,.25); }
-html[data-theme="dark"] .sidebar__title { color: #b8c0ff; border-color: #575757; }
-html[data-theme="dark"] .sidebar__link { color: #eee; }
-html[data-theme="dark"] .sidebar__link--active { color: #b6bfff; }
-html[data-theme="dark"] .sidebar__footer { border-color: #575757; }
-html[data-theme="dark"] .sidebar__footer .button { background: #3d3d3d; color: #eee; border-color: #666; }
-html[data-theme="dark"] .orders-header,
-html[data-theme="dark"] .orders-content { background: #2e2e2e; color: #f4f4f4; }
 html[data-theme="dark"] .orders-search { background: #252525; }
 html[data-theme="dark"] .orders-search input { color: #ddd; }
 html[data-theme="dark"] .orders-toolbar .view-toggle { background: #dedede; }
@@ -209,8 +118,6 @@ html[data-theme="dark"] .create-form .field { color: #eee; }
 html[data-theme="dark"] .create-form .input { background: #252525; color: #eee; border-color: #555; }
 
 @media (max-width: 900px) {
-  .workspace { padding: 28px 18px; }
-  .sidebar { width: auto; border-radius: 0; }
   .orders-header { align-items: flex-start; padding: 16px 18px 10px; }
   .orders-toolbar { justify-content: flex-start; }
   .orders-content { padding: 8px 18px 20px; }
@@ -224,53 +131,6 @@ html[data-theme="dark"] .create-form .input { background: #252525; color: #eee; 
   .dialog-body { padding: 16px; }
 }
 
-
-/* Боковая панель — по исходному макету из prikazy_layout_v4. */
-body { grid-template-columns: 245px minmax(0, 1fr); }
-.sidebar {
-  width: 245px; min-height: 100vh; height: 100vh; flex: 0 0 245px;
-  position: sticky; top: 0; padding: 18px 32px; gap: 0; overflow-y: auto;
-  background: rgba(250,250,250,.96); border: 0; border-radius: 0 14px 14px 0;
-  box-shadow: 4px 0 10px rgba(0,0,0,.10); z-index: 2;
-}
-.sidebar__brand { display:flex; align-items:center; min-height:48px; margin-bottom:8px; }
-.sidebar__logo { display:block; width:155px; height:auto; max-height:48px; object-fit:contain; object-position:left center; }
-.sidebar__logo--dark { display:none; }
-.sidebar__divider { height:1px; flex:0 0 1px; width:178px; margin:8px 0 6px; background:#d0d0d0; }
-.sidebar__project { margin:0 0 20px; color:#5265f4; font-size:14px; line-height:14px; font-weight:500; }
-.sidebar__profile { text-align:center; margin-bottom:30px; }
-.sidebar__avatar { width:53px; height:53px; margin:0 auto 6px; border-radius:50%; background:#dedede; }
-.sidebar__profile-name { color:#333; font-size:12px; line-height:12px; font-weight:600; }
-.sidebar__nav { display:flex; flex:1 0 auto; flex-direction:column; gap:16px; padding:0; }
-.sidebar__link { position:relative; display:flex; align-items:flex-start; gap:0; padding:0; border-radius:0; color:#4b4b4b; text-decoration:none; font-size:14px; line-height:16px; font-weight:600; }
-.sidebar__link:hover { background:transparent; color:#5865e9; }
-.sidebar__link--active { background:transparent; color:#5865e9; font-weight:700; }
-.sidebar__dot { position:absolute; left:-14px; top:4px; display:block; width:8px; height:8px; border-radius:50%; background:#5966ee; }
-.sidebar__footer { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:auto; padding:26px 0 0; border-top:0; }
-.sidebar__theme-label { color:#555; font-size:12px; line-height:14px; font-weight:700; }
-.sidebar__theme-switch { position:relative; display:block; flex:0 0 52px; width:52px; height:28px; cursor:pointer; }
-.sidebar__theme-switch input { position:absolute; width:1px; height:1px; opacity:0; }
-.sidebar__theme-slider { position:absolute; inset:0; border-radius:18px; background:#e0e0e0; border:1px solid #b8b8b8; transition:background .2s ease; }
-.sidebar__theme-knob { position:absolute; width:22px; height:22px; left:3px; top:2px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); transition:transform .2s ease; }
-.sidebar__theme-switch input:checked + .sidebar__theme-slider { background:#5965df; border-color:#5965df; }
-.sidebar__theme-switch input:checked + .sidebar__theme-slider .sidebar__theme-knob { transform:translateX(24px); }
-html[data-theme="dark"] .sidebar { background:#2e2e2e; box-shadow:4px 0 10px rgba(0,0,0,.25); }
-html[data-theme="dark"] .sidebar__logo--light { display:none; }
-html[data-theme="dark"] .sidebar__logo--dark { display:block; }
-html[data-theme="dark"] .sidebar__divider { background:#575757; }
-html[data-theme="dark"] .sidebar__project { color:#b8c0ff; }
-html[data-theme="dark"] .sidebar__profile-name, html[data-theme="dark"] .sidebar__link { color:#eee; }
-html[data-theme="dark"] .sidebar__link--active { color:#b6bfff; }
-html[data-theme="dark"] .sidebar__theme-label { color:#eee; }
-html[data-theme="dark"] .sidebar__theme-slider { background:#3d3d3d; border-color:#666; }
-html[data-theme="dark"] .sidebar__theme-knob { background:#f4f4f4; }
-@media (max-width:900px) {
-  body { display:block; }
-  .sidebar { width:100%; height:auto; min-height:auto; border-radius:0 0 14px 14px; padding:12px 18px; overflow:visible; }
-  .sidebar__profile { display:none; }
-  .sidebar__nav { flex-direction:row; flex-wrap:wrap; gap:8px 18px; margin-top:14px; }
-  .sidebar__footer { padding-top:14px; }
-}
 
 /* Диалоговые окна: центрирование, чистая рамка и удобное редактирование черновиков. */
 .order-dialog {

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Отчёты — Остаточные знания</title>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+  </head>
+  <body data-page="reports">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="workspace">
+      <header class="workspace__header"><h1>Отчёты</h1></header>
+      <section class="workspace__content">
+        <div class="section-filters">
+        <label class="field" for="period"><span class="field__label">Период тестирования</span>
+          <select id="period" class="field__input" disabled><option value="">Выберите период</option></select>
+        </label>
+          <label class="field" for="testing"><span class="field__label">Тестирование группы</span>
+            <select id="testing" class="field__input" disabled><option value="">Выберите тестирование</option></select>
+          </label>
+        </div>
+        <p id="section-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
+        <button id="section-retry" class="button" type="button" hidden>Повторить загрузку</button>
+        <div class="table-scroll"><table class="table"><thead><tr><th scope="col">№</th><th scope="col">Электронный отчёт</th><th scope="col">Комментарий</th><th scope="col">Бумажный отчёт</th><th scope="col">Комментарий</th><th scope="col">Итоговый статус</th></tr></thead><tbody id="section-rows"></tbody></table></div>
+      </section>
+    </main>
+    <script src="/js/layout.js"></script>
+    <script src="/app-config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/pages/sections.js"></script>
+  </body>
+</html>
