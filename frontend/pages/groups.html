@@ -10,11 +10,11 @@
     <link rel="stylesheet" href="../css/components.css">
     <link rel="stylesheet" href="../css/pages/groups.css">
   </head>
-  <body>
+  <body class="groups-page">
     <aside id="sidebar" class="sidebar"></aside>
     <main class="workspace">
-      <header class="workspace__header"><h1>Списки групп</h1></header>
       <section class="workspace__content">
+        <header class="workspace__header"><h1>Формирование списка рекомендуемых групп</h1></header>
         <form id="group-filters" class="group-filters" aria-label="Фильтры групп">
           <label class="field" for="faculty"><span class="field__label">Факультет / институт</span>
             <select id="faculty" class="field__input" disabled><option value="">Все факультеты</option></select>
@@ -33,10 +33,12 @@
         <button id="retry" class="button" type="button" hidden>Повторить загрузку</button>
         <div class="table-scroll">
           <table class="table" aria-label="Учебные группы">
-            <thead><tr><th>Группа</th><th>Направление подготовки</th></tr></thead>
+            <thead id="groups-head"><tr><th>Группа</th><th>Курс</th><th>Предыдущие тестирования</th><th>Текущие тестирования</th><th>Планируемые тестирования</th></tr></thead>
             <tbody id="groups-body"></tbody>
           </table>
         </div>
+        <p id="period-context" class="period-context"></p>
+        <p class="testing-legend"><span><i class="testing-mark testing-mark--completed" aria-hidden="true">✓</i> Проведено</span><span><i class="testing-mark testing-mark--planned" aria-hidden="true">✓</i> Запланировано</span><span><i class="testing-mark testing-mark--active" aria-hidden="true">◐</i> Проводится</span><span><i class="testing-mark testing-mark--missing" aria-hidden="true">×</i> Нет назначения / отменено</span></p>
       </section>
     </main>
     <script src="../js/layout.js"></script>

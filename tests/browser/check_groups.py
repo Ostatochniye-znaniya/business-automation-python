@@ -39,12 +39,28 @@ async def check():
             nonlocal delay_next
             url = urlparse(route.request.url)
             query = parse_qs(url.query)
-            if url.path == "/api/groups":
+            if url.path == "/api/groups/testing-overview":
                 calls.append(query)
                 if fail_groups:
                     await route.fulfill(status=500, json={"detail": "Ошибка БД"})
                     return
-                payload = [{"id": 1, "name": "241-001", "study_program_id": 1}]
+                payload = [
+                    {
+                        "id": 1,
+                        "name": "241-001",
+                        "study_program_id": 1,
+                        "admission_year": 2024,
+                        "testings": [
+                            {
+                                "id": 1,
+                                "period_id": 1,
+                                "discipline_name": "Базы данных",
+                                "status": "COMPLETED",
+                                "scheduled_at": None,
+                            }
+                        ],
+                    }
+                ]
                 if query.get("faculty_id") == ["2"]:
                     payload = [{"id": 2, "name": "241-002", "study_program_id": 2}]
                 if query.get("academic_year") == ["2026/2027"] and query.get("faculty_id") == ["1"]:
@@ -105,9 +121,30 @@ async def check():
         # Values from the server are text, never executable HTML.
         catalogs["/api/programs"][0]["name"] = '<img src=x onerror="alert(1)">'
         await page.reload()
-        await expect(page.locator("#groups-body")).to_contain_text("<img src=x")
+        await expect(page.locator("#groups-body th")).to_have_attribute(
+            "title", '<img src=x onerror="alert(1)">'
+        )
         assert await page.locator("#groups-body img").count() == 0
+        await expect(page.locator("#groups-head")).to_contain_text("Предыдущие тестирования")
+        await expect(page.locator("#groups-body .testing-mark--completed")).to_have_count(1)
+        assert await page.locator("#groups-body td").first.text_content() != "—"
+        # Pagination is also exercised by the shared helper.
+        await page.route(
+            "**/api/pagination-check?*",
+            lambda route: route.fulfill(
+                json=(list(range(100)) if "offset=0&" in route.request.url else [100])
+            ),
+        )
+        assert (
+            await page.evaluate("async () => (await apiGetAll('/pagination-check')).length") == 101
+        )
         await page.screenshot(path="/private/tmp/knowledge-groups.png", full_page=True)
+        await page.locator("#theme-toggle").check()
+        await expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+        await page.screenshot(path="/private/tmp/knowledge-groups-dark.png", full_page=True)
+        await page.set_viewport_size({"width": 390, "height": 844})
+        assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+        await page.screenshot(path="/private/tmp/knowledge-groups-mobile.png", full_page=True)
         assert not errors, errors
         await browser.close()
         print("Group filter browser checks passed")

@@ -9,6 +9,7 @@ class StudyGroup(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     external_id: Mapped[str | None] = mapped_column(String(128), unique=True)
     name: Mapped[str] = mapped_column(String(64))
+    admission_year: Mapped[int | None] = mapped_column()
     study_program_id: Mapped[int | None] = mapped_column(
         ForeignKey("study_programs.id"), index=True
     )

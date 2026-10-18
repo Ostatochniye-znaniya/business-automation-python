@@ -99,3 +99,71 @@ async def test_programs_are_scoped_to_faculty(client, group_catalog):
 @pytest.mark.parametrize("query", ["semester=3", "faculty_id=-1", "academic_year=wrong"])
 async def test_invalid_group_filters(client, query):
     assert (await client.get(f"/api/groups?{query}")).status_code == 422
+
+
+async def test_testing_overview_is_scoped_and_includes_empty_groups(client, group_catalog):
+    from app.core.enums import KnowledgeTestStatus
+    from app.modules.disciplines.models import Discipline
+    from app.modules.testing.models import KnowledgeTest
+
+    group_catalog.add(Discipline(id=1, name="Базы данных"))
+    await group_catalog.flush()
+    group_catalog.add_all(
+        [
+            KnowledgeTest(
+                id=1, group_id=1, period_id=1, discipline_id=1, status=KnowledgeTestStatus.COMPLETED
+            ),
+            KnowledgeTest(
+                id=2,
+                group_id=1,
+                period_id=2,
+                discipline_id=1,
+                status=KnowledgeTestStatus.IN_PROGRESS,
+            ),
+            KnowledgeTest(id=3, group_id=1, period_id=3, discipline_id=1),
+            KnowledgeTest(id=4, group_id=2, period_id=2, discipline_id=1),
+        ]
+    )
+    await group_catalog.commit()
+    response = await client.get("/api/groups/testing-overview?faculty_id=1")
+    assert response.status_code == 200
+    rows = response.json()
+    assert [row["id"] for row in rows] == [1, 3]
+    assert rows[1]["testings"] == []
+    assert [test["status"] for test in rows[0]["testings"]] == [
+        "COMPLETED",
+        "IN_PROGRESS",
+        "PLANNED",
+    ]
+    assert rows[0]["testings"][0]["discipline_name"] == "Базы данных"
+    assert (await client.get("/api/groups/testing-overview?offset=1&limit=1")).json()[0]["id"] == 2
+    assert (await client.get("/api/groups/testing-overview?faculty_id=999")).json() == []
+
+
+async def test_create_testing_enrolls_group_and_preserves_explicit_status(client, group_catalog):
+    from app.modules.disciplines.models import Discipline
+
+    group_catalog.add(Discipline(id=1, name="Базы данных"))
+    await group_catalog.commit()
+    payload = {"group_id": 3, "period_id": 2, "discipline_id": 1, "status": "COMPLETED"}
+    response = await client.post("/api/testing", json=payload)
+    assert response.status_code == 201
+    assert response.json()["status"] == "COMPLETED"
+    await client.post("/api/testing", json=payload)
+    groups = (await client.get("/api/groups?academic_year=2025/2026&semester=2")).json()
+    assert [row["id"] for row in groups] == [1, 2, 3]
+    response = await client.post("/api/testing", json={**payload, "group_id": 999})
+    assert response.status_code == 404
+
+
+async def test_invalid_testing_status_is_rejected(client):
+    response = await client.post(
+        "/api/testing",
+        json={
+            "group_id": 1,
+            "period_id": 1,
+            "discipline_id": 1,
+            "status": "WRONG",
+        },
+    )
+    assert response.status_code == 422

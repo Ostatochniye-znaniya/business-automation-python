@@ -2,9 +2,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
+from app.modules.disciplines.models import Discipline
 from app.modules.groups.models import GroupPeriod, StudyGroup, StudyProgram
-from app.modules.groups.schemas import DashboardStatistics
+from app.modules.groups.schemas import (
+    DashboardStatistics,
+    GroupTestingOverview,
+    GroupTestingSummary,
+    StudyGroupRead,
+)
 from app.modules.periods.models import TestingPeriod
+from app.modules.testing.models import KnowledgeTest
 
 
 class GroupService:
@@ -56,6 +63,53 @@ class GroupService:
             statement = statement.where(membership.exists())
         statement = statement.order_by(StudyGroup.name, StudyGroup.id).offset(offset).limit(limit)
         return list((await self.session.scalars(statement)).all())
+
+    async def testing_overview(
+        self,
+        offset: int = 0,
+        limit: int = 100,
+        *,
+        faculty_id: int | None = None,
+        study_program_id: int | None = None,
+        academic_year: str | None = None,
+        semester: int | None = None,
+    ) -> list[GroupTestingOverview]:
+        groups = await self.list_groups(
+            offset=offset,
+            limit=limit,
+            faculty_id=faculty_id,
+            study_program_id=study_program_id,
+            academic_year=academic_year,
+            semester=semester,
+        )
+        if not groups:
+            return []
+        tests = (
+            await self.session.execute(
+                select(KnowledgeTest, Discipline.name)
+                .join(Discipline)
+                .where(KnowledgeTest.group_id.in_([group.id for group in groups]))
+                .order_by(KnowledgeTest.period_id, KnowledgeTest.id)
+            )
+        ).all()
+        by_group: dict[int, list[GroupTestingSummary]] = {group.id: [] for group in groups}
+        for test, discipline_name in tests:
+            by_group[test.group_id].append(
+                GroupTestingSummary(
+                    id=test.id,
+                    period_id=test.period_id,
+                    discipline_name=discipline_name,
+                    scheduled_at=test.scheduled_at,
+                    status=test.status,
+                )
+            )
+        return [
+            GroupTestingOverview(
+                **StudyGroupRead.model_validate(group).model_dump(),
+                testings=by_group[group.id],
+            )
+            for group in groups
+        ]
 
     async def get_dashboard_statistics(
         self, period_id: int, department_id: int
