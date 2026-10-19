@@ -16,4 +16,18 @@ async def test_swagger_and_openapi(client):
     response = await client.get("/openapi.json")
     assert response.status_code == 200
     paths = set(response.json()["paths"])
-    assert {"/health", "/api/periods", "/api/periods/{period_id}"} <= paths
+    assert {
+        "/health",
+        "/api/dashboard",
+        "/api/departments",
+        "/api/disciplines",
+        "/api/groups",
+        "/api/periods",
+        "/api/periods/{period_id}",
+        "/api/reports",
+        "/api/results",
+        "/api/students",
+        "/api/students/{student_id}",
+        "/api/testing",
+        "/api/users",
+    } <= paths

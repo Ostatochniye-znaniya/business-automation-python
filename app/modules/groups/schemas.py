@@ -10,3 +10,10 @@ class StudyGroupCreate(BaseModel):
 class StudyGroupRead(StudyGroupCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
+
+class DashboardStatistics(BaseModel):
+    """Group counts for a dashboard department row."""
+
+    required: int | None = None
+    actual: int | None = None

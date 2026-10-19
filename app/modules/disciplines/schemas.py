@@ -10,3 +10,10 @@ class DisciplineCreate(BaseModel):
 class DisciplineRead(DisciplineCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
+
+class DashboardStatistics(BaseModel):
+    """Discipline counts for a dashboard department row."""
+
+    required: int | None = None
+    actual: int | None = None

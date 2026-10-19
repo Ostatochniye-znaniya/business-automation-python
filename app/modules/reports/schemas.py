@@ -14,3 +14,12 @@ class ReportCreate(BaseModel):
 class ReportRead(ReportCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
+
+class ReportStatistics(BaseModel):
+    """Report counters returned by the dashboard aggregation contract."""
+
+    electronic_submitted: int | None = None
+    electronic_with_issues: int | None = None
+    paper_submitted: int | None = None
+    paper_with_issues: int | None = None
