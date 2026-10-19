@@ -66,12 +66,12 @@ jobs:
           MYSQL_USER: verification
           MYSQL_PASSWORD: verification_only
         ports:
-          - 3306/tcp
+          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping -h localhost --silent"
           --health-interval=10s --health-timeout=5s --health-retries=15
     env:
-      DATABASE_URL: mysql+asyncmy://verification:verification_only@127.0.0.1:${{ job.services.mysql.ports[3306] }}/knowledge_verification
+      DATABASE_URL: mysql+asyncmy://verification:verification_only@127.0.0.1:3306/knowledge_verification
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
