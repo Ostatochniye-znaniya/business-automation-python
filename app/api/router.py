@@ -10,6 +10,7 @@ from app.modules.results.router import router as results_router
 from app.modules.students.router import router as students_router
 from app.modules.testing.router import router as testing_router
 from app.modules.users.router import router as users_router
+from app.modules.auth.router import polytech_router, router as auth_router
 
 api_router = APIRouter()
 for router in (
@@ -23,5 +24,7 @@ for router in (
     results_router,
     reports_router,
     dashboard_router,
+    auth_router,
+    polytech_router,
 ):
     api_router.include_router(router)
