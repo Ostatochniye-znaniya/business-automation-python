@@ -30,7 +30,8 @@ async function request(method, path, body) {
   }
 
   if (!response.ok) {
-    const detail = payload && payload.detail ? payload.detail : response.statusText;
+    const rawDetail = payload && payload.detail ? payload.detail : response.statusText;
+    const detail = Array.isArray(rawDetail) ? rawDetail.map(item => `${item.loc.join('.')}: ${item.msg}`).join('; ') : rawDetail;
     throw new Error(detail);
   }
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Enum, ForeignKey
+from sqlalchemy import Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.enums import KnowledgeTestStatus
@@ -18,3 +18,16 @@ class KnowledgeTest(Base):
         Enum(KnowledgeTestStatus), default=KnowledgeTestStatus.PLANNED
     )
     scheduled_at: Mapped[datetime | None] = mapped_column()
+    agreement_status: Mapped[str] = mapped_column(String(16), default="PROPOSED")
+    agreement_comment: Mapped[str | None] = mapped_column(Text)
+    room: Mapped[str | None] = mapped_column(String(100))
+
+
+class GroupParticipation(Base):
+    __tablename__ = "group_participation"
+    __table_args__ = (UniqueConstraint("group_id", "period_id", name="uq_participation"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("study_groups.id"))
+    period_id: Mapped[int] = mapped_column(ForeignKey("testing_periods.id"))
+    participates: Mapped[bool] = mapped_column()
+    reason: Mapped[str | None] = mapped_column(Text)

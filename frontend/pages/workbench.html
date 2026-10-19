@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Рабочие процессы — Остаточные знания</title>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/components.css" />
+    <link rel="stylesheet" href="/css/pages/workbench.css" />
+  </head>
+  <body>
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="workspace">
+      <header class="workspace__header">
+        <h1>Рабочие процессы</h1>
+        <a href="/pages/login.html">Сменить пользователя</a>
+      </header>
+      <section class="workspace__content">
+        <p id="actor" class="section-intro"></p>
+        <p id="status" role="status" aria-live="polite">Загрузка…</p>
+        <nav class="workbench-tabs" aria-label="Разделы работы">
+          <button class="button" data-tab="planning">Планирование</button
+          ><button class="button" data-tab="results">
+            Результаты и отчёты
+          </button>
+          <button class="button" data-tab="review">Проверка отчётов</button
+          ><button class="button" data-tab="administration">
+            Сотрудники и доступ
+          </button>
+          <button class="button" data-tab="periods">Периоды</button
+          ><button class="button" data-tab="departments">Подразделения</button>
+          <button class="button" data-tab="catalogs">
+            Учебные справочники
+          </button>
+        </nav>
+        <div class="section-filters">
+          <label class="field"
+            >Период<select id="period" class="field__input"></select
+          ></label>
+          <button id="refresh" class="button" type="button">Обновить</button>
+        </div>
+        <section id="planning" class="workflow-panel">
+          <h2>Участие группы и дисциплины</h2>
+          <form id="participation" class="workflow-form">
+            <label
+              >Рекомендованная группа<select
+                name="group_id"
+                data-catalog="eligibleGroups"
+                required
+              ></select
+            ></label>
+            <label
+              >Участие<select name="participates">
+                <option value="true">Участвует</option>
+                <option value="false">Не участвует</option>
+              </select></label
+            >
+            <label
+              >Первая дисциплина<select
+                name="discipline1"
+                data-catalog="disciplines"
+              ></select
+            ></label>
+            <label
+              >Вторая дисциплина<select
+                name="discipline2"
+                data-catalog="disciplines"
+              ></select
+            ></label>
+            <label
+              >Причина решения<input name="reason" maxlength="2000"
+            /></label>
+            <button class="button" type="submit">Сохранить выбор</button>
+          </form>
+          <h2>Назначение преподавателя и времени</h2>
+          <form id="assignment" class="workflow-form">
+            <label
+              >Проверка<select
+                name="test_id"
+                data-catalog="tests"
+                required
+              ></select
+            ></label>
+            <label
+              >Преподаватель<select
+                name="teacher_id"
+                data-catalog="teachers"
+                required
+              ></select
+            ></label>
+            <label
+              >Дата и время (Москва)<input
+                name="scheduled_at"
+                type="datetime-local"
+                required
+            /></label>
+            <label
+              >Аудитория / место<input name="room" required maxlength="100"
+            /></label>
+            <button class="button" type="submit">Предложить расписание</button>
+          </form>
+          <form id="agreement" class="workflow-form">
+            <label
+              >Моя проверка<select
+                name="test_id"
+                data-catalog="tests"
+                required
+              ></select
+            ></label>
+            <label
+              >Решение<select name="approved">
+                <option value="true">Согласовать</option>
+                <option value="false">Отклонить</option>
+              </select></label
+            >
+            <label>Комментарий<input name="comment" maxlength="2000" /></label
+            ><button class="button">Сохранить решение</button>
+          </form>
+          <label
+            >Подписывающее лицо графика<input
+              id="signatory"
+              placeholder="Декан / директор, ФИО"
+          /></label>
+          <button id="schedule" class="button">
+            Скачать согласованный график PDF
+          </button>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Группа</th>
+                  <th>Дисциплина</th>
+                  <th>Преподаватель</th>
+                  <th>Дата и время</th>
+                  <th>Согласование</th>
+                  <th>Статус</th>
+                </tr>
+              </thead>
+              <tbody id="test-rows"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="results" class="workflow-panel" hidden>
+          <h2>Ведомость результатов</h2>
+          <label
+            >Проверка<select
+              id="result-test"
+              data-catalog="tests"
+            ></select></label
+          ><button id="load-roster" class="button">Открыть ведомость</button>
+          <p>
+            Для отсутствующего или недопущенного студента результат тестирования
+            оставьте пустым.
+          </p>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ФИО</th>
+                  <th>Промежуточная аттестация</th>
+                  <th>Участие</th>
+                  <th>Результат тестирования</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="result-rows"></tbody>
+            </table>
+          </div>
+          <button id="complete" class="button">
+            Завершить заполнение ведомости
+          </button>
+          <button id="report-document" class="button">
+            Скачать отчёт DOCX
+          </button>
+          <button id="create-report" class="button">
+            Создать карточку отчёта
+          </button>
+          <h2>Электронный отчёт</h2>
+          <p id="report-state"></p>
+          <form id="report-metadata" class="workflow-form">
+            <label
+              >ФИО преподавателя предыдущего семестра<input
+                name="previous_teacher_name"
+                maxlength="255" /></label
+            ><button class="button">
+              Сохранить сведения для печатной формы
+            </button>
+          </form>
+          <form id="upload" class="workflow-form">
+            <label
+              >Файл отчёта<input
+                name="file"
+                type="file"
+                accept=".pdf,.docx"
+                required /></label
+            ><button class="button">Загрузить на проверку</button>
+          </form>
+          <button id="download-report" class="button">
+            Скачать загруженный файл</button
+          ><button id="withdraw" class="button">
+            Отозвать для исправления
+          </button>
+          <button id="delete-report" class="button">
+            Удалить черновик отчёта
+          </button>
+        </section>
+        <section id="review" class="workflow-panel" hidden>
+          <h2>Рассмотрение отчётов</h2>
+          <div class="section-filters">
+            <label
+              >Подразделение<select
+                id="review-faculty"
+                data-catalog="departments"
+              ></select
+            ></label>
+            <label
+              >Группа<select id="review-group" data-catalog="groups"></select
+            ></label>
+            <label
+              >Дисциплина<select
+                id="review-discipline"
+                data-catalog="disciplines"
+              ></select
+            ></label>
+          </div>
+          <button id="load-reviews" class="button">Найти отчёты</button>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Отчёт</th>
+                  <th>Проверка</th>
+                  <th>Электронная версия</th>
+                  <th>Замечания</th>
+                  <th>Бумажная версия</th>
+                  <th>Итог</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="review-rows"></tbody>
+            </table>
+          </div>
+          <form id="review-form" class="workflow-form">
+            <label
+              >Отчёт<select
+                name="report_id"
+                id="review-report"
+                required
+              ></select
+            ></label>
+            <label
+              >Версия<select name="version">
+                <option value="electronic">Электронная</option>
+                <option value="paper">Бумажная</option>
+              </select></label
+            >
+            <label
+              >Решение<select name="approved">
+                <option value="true">Принять</option>
+                <option value="false">Отклонить</option>
+              </select></label
+            >
+            <label
+              >Замечания<textarea
+                name="comment"
+                maxlength="10000"
+              ></textarea></label
+            ><button class="button">Сохранить решение</button>
+          </form>
+          <button id="summary" class="button">Скачать сводный отчёт CSV</button>
+        </section>
+        <section id="administration" class="workflow-panel" hidden>
+          <h2>Сотрудники</h2>
+          <button id="load-users" class="button">Обновить сотрудников</button>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ФИО</th>
+                  <th>Роль</th>
+                  <th>Подразделение</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="user-rows"></tbody>
+            </table>
+          </div>
+          <form id="user-form" class="workflow-form">
+            <input name="id" type="hidden" />
+            <label>ФИО<input name="full_name" required maxlength="255" /></label
+            ><label
+              >Табельный номер<input name="external_id" maxlength="128"
+            /></label>
+            <label>Электронная почта<input name="email" type="email" /></label
+            ><label>Должность<input name="position" /></label>
+            <label
+              >Подразделение<select
+                name="department_id"
+                data-catalog="departments"
+              ></select></label
+            ><label
+              >Роль<select name="role" data-catalog="roles"></select
+            ></label>
+            <label
+              >Доступ<select name="is_active">
+                <option value="true">Активен</option>
+                <option value="false">Отключён</option>
+              </select></label
+            >
+            <button class="button">Сохранить сотрудника</button
+            ><button type="reset" class="button">Новый сотрудник</button>
+          </form>
+          <h2>Импорт сотрудников</h2>
+          <p>
+            CSV UTF-8 или XLSX: external_id, full_name, email, position,
+            department_id. Роли существующих пользователей сохраняются.
+          </p>
+          <form id="import-form" class="workflow-form">
+            <input
+              name="file"
+              type="file"
+              accept=".csv,.xlsx"
+              required
+            /><button class="button">Импортировать</button>
+          </form>
+          <div id="import-status"></div>
+          <h2>Заявки на доступ</h2>
+          <button id="load-requests" class="button">Обновить заявки</button>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Сотрудник</th>
+                  <th>Роль</th>
+                  <th>Причина</th>
+                  <th>Статус</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="request-rows"></tbody>
+            </table>
+          </div>
+          <h2>Журнал действий</h2>
+          <button id="load-audit" class="button">
+            Показать последние действия
+          </button>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Время (Москва)</th>
+                  <th>Сотрудник</th>
+                  <th>Действие</th>
+                  <th>Объект</th>
+                </tr>
+              </thead>
+              <tbody id="audit-rows"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="periods" class="workflow-panel" hidden>
+          <h2>Период и доступ к редактированию</h2>
+          <form id="period-form" class="workflow-form">
+            <input name="id" type="hidden" /><label
+              >Название<input name="name" required
+            /></label>
+            <label
+              >Учебный год<input
+                name="academic_year"
+                required
+                pattern="[0-9]{4}/[0-9]{4}"
+                placeholder="2026/2027"
+            /></label>
+            <label
+              >Семестр<select name="semester">
+                <option value="1">Осень</option>
+                <option value="2">Весна</option>
+              </select></label
+            >
+            <label>Начало<input name="start_date" type="date" required /></label
+            ><label
+              >Окончание<input name="end_date" type="date" required
+            /></label>
+            <label
+              >Статус<select name="status">
+                <option value="DRAFT">Черновик</option>
+                <option value="OPEN">Открыт</option>
+                <option value="CLOSED">Закрыт</option>
+              </select></label
+            >
+            <button class="button">Сохранить период</button
+            ><button class="button" type="reset">Новый период</button>
+          </form>
+        </section>
+        <section id="departments" class="workflow-panel" hidden>
+          <h2>Структура подразделений</h2>
+          <button id="load-departments" class="button">
+            Обновить структуру
+          </button>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Подразделение</th>
+                  <th>Входит в</th>
+                  <th>Сотрудников</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="department-rows"></tbody>
+            </table>
+          </div>
+          <form id="department-form" class="workflow-form">
+            <input name="id" type="hidden" /><label
+              >Название<input name="name" required /></label
+            ><label>Сокращение<input name="short_name" /></label>
+            <label
+              >Родительское подразделение<select
+                name="parent_id"
+                data-catalog="departments"
+              ></select
+            ></label>
+            <label
+              >Тип<select name="type">
+                <option value="DEPARTMENT">Кафедра</option>
+                <option value="FACULTY">Факультет</option>
+                <option value="INSTITUTE">Институт</option>
+                <option value="UNIVERSITY">Университет</option>
+              </select></label
+            >
+            <button class="button">Сохранить подразделение</button
+            ><button class="button" type="reset">Новое подразделение</button>
+          </form>
+        </section>
+        <section id="catalogs" class="workflow-panel" hidden>
+          <h2>Направления подготовки</h2>
+          <form id="program-form" class="workflow-form">
+            <label
+              >Запись<select
+                name="id"
+                data-catalog="programs"
+                data-editor="programs"
+              ></select
+            ></label>
+            <label>Название<input name="name" required maxlength="255" /></label
+            ><label>Код<input name="code" maxlength="32" /></label>
+            <label
+              >Факультет / институт<select
+                name="faculty_id"
+                data-catalog="departments"
+                required
+              ></select></label
+            ><button class="button">Сохранить направление</button>
+          </form>
+          <h2>Учебные группы</h2>
+          <form id="group-form" class="workflow-form">
+            <label
+              >Запись<select
+                name="id"
+                data-catalog="groups"
+                data-editor="groups"
+              ></select
+            ></label>
+            <label
+              >Номер группы<input name="name" required maxlength="64" /></label
+            ><label
+              >Внешний идентификатор<input name="external_id" maxlength="128"
+            /></label>
+            <label
+              >Год поступления<input
+                name="admission_year"
+                type="number"
+                min="1900"
+                max="3000"
+            /></label>
+            <label
+              >Кафедра<select
+                name="department_id"
+                data-catalog="departments"
+                required
+              ></select
+            ></label>
+            <label
+              >Направление<select
+                name="study_program_id"
+                data-catalog="programs"
+              ></select
+            ></label>
+            <p>При сохранении группа включается в выбранный сверху период.</p>
+            <button class="button">Сохранить группу</button>
+          </form>
+          <h2>Дисциплины</h2>
+          <form id="discipline-form" class="workflow-form">
+            <label
+              >Запись<select
+                name="id"
+                data-catalog="disciplines"
+                data-editor="disciplines"
+              ></select
+            ></label>
+            <label>Название<input name="name" required maxlength="255" /></label
+            ><label
+              >Внешний идентификатор<input name="external_id" maxlength="128"
+            /></label>
+            <label
+              >Кафедра<select
+                name="department_id"
+                data-catalog="departments"
+                required
+              ></select></label
+            ><button class="button">Сохранить дисциплину</button>
+          </form>
+          <h2>Студенты</h2>
+          <button id="load-students" class="button">
+            Обновить список студентов
+          </button>
+          <form id="student-form" class="workflow-form">
+            <label
+              >Запись<select
+                name="id"
+                data-catalog="students"
+                data-editor="students"
+              ></select
+            ></label>
+            <label>ФИО<input name="full_name" required maxlength="255" /></label
+            ><label
+              >Внешний идентификатор<input name="external_id" maxlength="128"
+            /></label>
+            <label
+              >Группа<select
+                name="group_id"
+                data-catalog="groups"
+                required
+              ></select></label
+            ><button class="button">Сохранить студента</button>
+          </form>
+        </section>
+        <section id="guest" hidden>
+          <h2>Ожидание назначения роли администратором</h2>
+          <form id="access-request" class="workflow-form">
+            <label
+              >Роль<select name="requested_role" data-catalog="roles"></select
+            ></label>
+            <label
+              >Основание<textarea
+                name="reason"
+                required
+                maxlength="2000"
+              ></textarea></label
+            ><button class="button">Запросить доступ</button>
+          </form>
+        </section>
+      </section>
+    </main>
+    <script src="/js/layout.js"></script>
+    <script src="/app-config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/pages/workbench.js"></script>
+  </body>
+</html>

@@ -19,3 +19,13 @@ class DepartmentService:
         return list(
             (await self.session.scalars(select(Department).offset(offset).limit(limit))).all()
         )
+
+    async def subtree_ids(self, department_id: int | None) -> set[int]:
+        """Resolve descendants and tolerate incomplete external hierarchies."""
+        if department_id is None:
+            return set()
+        pairs = (await self.session.execute(select(Department.id, Department.parent_id))).all()
+        ids = {department_id}
+        while new_ids := {identifier for identifier, parent in pairs if parent in ids} - ids:
+            ids.update(new_ids)
+        return ids

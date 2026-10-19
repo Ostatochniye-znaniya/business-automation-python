@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
     ApplicationError,
@@ -36,3 +37,12 @@ async def application_error_handler(request: Request, exc: ApplicationError) -> 
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ApplicationError, application_error_handler)
     app.add_exception_handler(Exception, unexpected_error_handler)
+    app.add_exception_handler(IntegrityError, integrity_error_handler)
+
+
+async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+    logger.warning("Database constraint conflict: %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "Запись уже существует или используется в связанных данных"},
+    )

@@ -1,4 +1,5 @@
 const SECTIONS = [
+  { title: "Рабочие процессы", href: "/pages/workbench.html" },
   { title: "Главная", href: "/" },
   { title: "Приказы", href: "/pages/orders.html" },
   { title: "Списки <br>рекомендуемых <br>групп", href: "/pages/groups.html" },
@@ -33,7 +34,7 @@ function renderSidebar() {
     '<div class="sidebar__brand"><img class="sidebar__logo sidebar__logo--light" src="/assets/logo_light.png" alt="Московский Политех"><img class="sidebar__logo sidebar__logo--dark" src="/assets/logo_dark.png" alt="Московский Политех"></div>' +
     '<div class="sidebar__divider"></div>' +
     '<div class="sidebar__project">Проверка<br>остаточных знаний</div>' +
-    '<div class="sidebar__profile"><div class="sidebar__avatar" aria-hidden="true"></div><div class="sidebar__profile-name">Иванов<br>Иван Иванович</div></div>' +
+    '<div class="sidebar__profile"><div class="sidebar__avatar" aria-hidden="true"></div><div class="sidebar__profile-name"><a href="/pages/login.html">Войти в систему</a></div></div>' +
     '<nav class="sidebar__nav" aria-label="Основная навигация">' + links + '</nav>' +
     '<div class="sidebar__footer"><span class="sidebar__theme-label" id="theme-label">Тёмная тема</span><label class="sidebar__theme-switch" aria-label="Переключить тему"><input type="checkbox" id="theme-toggle" aria-label="Переключить тему"><span class="sidebar__theme-slider"><span class="sidebar__theme-knob"></span></span></label></div>';
   const toggle = document.getElementById("theme-toggle");
@@ -50,3 +51,14 @@ function renderSidebar() {
   });
 }
 renderSidebar();
+if (typeof document.addEventListener === 'function' && typeof fetch === 'function') {
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const response = await fetch((window.APP_CONFIG?.apiBase || '/api') + '/auth/me');
+      if (!response.ok) return;
+      const user = await response.json();
+      const profile = document.querySelector('.sidebar__profile-name');
+      if (profile) profile.textContent = user.full_name;
+    } catch (_) { /* Login link remains available when the API is unavailable. */ }
+  });
+}

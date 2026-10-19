@@ -28,7 +28,16 @@ async def test_demo_seed_is_idempotent_and_preserves_existing_data(db_session):
     await db_session.commit()
     assert await seed_demo_data(db_session) is True
     first = await counts(db_session)
-    assert all(first.values())
+    workflow_tables = {
+        "orders",
+        "access_requests",
+        "audit_events",
+        "import_logs",
+        "dev_sessions",
+        "group_participation",
+    }
+    assert all(value for name, value in first.items() if name not in workflow_tables)
+    assert all(first[name] == 0 for name in workflow_tables)
     assert first["study_groups"] == 6
     assert first["testing_periods"] == 6
     assert first["study_programs"] == 4
