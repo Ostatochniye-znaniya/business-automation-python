@@ -20,6 +20,10 @@
   --success: #2f9e6e;
   --warning: #c9821f;
   --danger: #c9403a;
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #1f2328;
+  --sidebar-line: #e2e5ea;
+  --workspace-bg: #f5f6f8;
   --radius: 8px;
   --gap: 16px;
 }
@@ -35,6 +39,10 @@
   --success: #4cc38a;
   --warning: #e0a24a;
   --danger: #e5695f;
+  --sidebar-bg: #2e2e2e;
+  --sidebar-text: #ffffff;
+  --sidebar-line: #5b5b5b;
+  --workspace-bg: #3a3a3a;
 }
 
 html,
