@@ -1,9 +1,11 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import FeatureNotImplementedError, NotFoundError
+from app.core.exceptions import ConflictError, FeatureNotImplementedError, NotFoundError
 from app.modules.reports.models import Report
-from app.modules.reports.schemas import ReportStatistics
+from app.modules.reports.schemas import ReportCreate, ReportStatistics, ReportUpdate
+from app.modules.testing.models import KnowledgeTest
 
 
 class ReportService:
@@ -29,6 +31,40 @@ class ReportService:
                 )
             ).all()
         )
+
+    async def create_report(self, data: ReportCreate) -> Report:
+        knowledge_test = await self.session.get(KnowledgeTest, data.knowledge_test_id)
+        if knowledge_test is None:
+            raise NotFoundError("KnowledgeTest not found")
+
+        existing_id = await self.session.scalar(
+            select(Report.id).where(Report.knowledge_test_id == data.knowledge_test_id)
+        )
+        if existing_id is not None:
+            raise ConflictError("Report for this knowledge test already exists")
+
+        report = Report(**data.model_dump())
+        self.session.add(report)
+        try:
+            await self.session.commit()
+        except IntegrityError as error:
+            await self.session.rollback()
+            raise ConflictError("Report for this knowledge test already exists") from error
+        await self.session.refresh(report)
+        return report
+
+    async def update_report(self, entity_id: int, data: ReportUpdate) -> Report:
+        report = await self.get_by_id(entity_id)
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(report, field, value)
+        await self.session.commit()
+        await self.session.refresh(report)
+        return report
+
+    async def delete_report(self, entity_id: int) -> None:
+        report = await self.get_by_id(entity_id)
+        await self.session.delete(report)
+        await self.session.commit()
 
     async def get_dashboard_statistics(
         self, period_id: int, department_id: int
