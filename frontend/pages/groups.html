@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Закрепление дисциплин — Остаточные знания</title>
+    <script>
+      (function () {
+        var savedTheme = localStorage.getItem("theme") || localStorage.getItem("app-theme");
+        var theme = savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="../css/pages/groups.css" />
+  </head>
+  <body>
+    <main class="discipline-demo">
+      <section class="discipline-modal" id="discipline-modal" role="dialog" aria-modal="true" aria-labelledby="discipline-modal-title">
+        <h1 id="discipline-modal-title">Выбор дисциплин для группы 221-111</h1>
+
+        <div class="discipline-fields">
+          <div class="discipline-field" data-dropdown="discipline-one">
+            <h2>Дисциплина 1:</h2>
+            <button class="discipline-select" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="discipline-one-list">
+              <span class="discipline-select__value">Линейная алгебра</span>
+              <svg aria-hidden="true" viewBox="0 0 16 10"><path d="m1 9 7-7 7 7" /></svg>
+            </button>
+            <div class="discipline-options" id="discipline-one-list" role="listbox" hidden>
+              <button type="button" role="option" aria-selected="true" data-value="Линейная алгебра">Линейная алгебра</button>
+              <button type="button" role="option" aria-selected="false" data-value="Дискретная математика">Дискретная математика</button>
+              <button type="button" role="option" aria-selected="false" data-value="Теория вероятностей">Теория вероятностей</button>
+            </div>
+          </div>
+
+          <div class="discipline-field is-open" data-dropdown="discipline-two">
+            <h2>Дисциплина 2:</h2>
+            <button class="discipline-select" type="button" aria-haspopup="listbox" aria-expanded="true" aria-controls="discipline-two-list">
+              <span class="discipline-select__value discipline-select__value--placeholder">Не выбрано</span>
+              <svg aria-hidden="true" viewBox="0 0 16 10"><path d="m1 1 7 7 7-7" /></svg>
+            </button>
+            <div class="discipline-options" id="discipline-two-list" role="listbox">
+              <button type="button" role="option" aria-selected="false" data-value="Базы данных">Базы данных</button>
+              <button type="button" role="option" aria-selected="false" data-value="Основы программирования">Основы программирования</button>
+              <button type="button" role="option" aria-selected="false" data-value="Аналитика информационной безопасности">Аналитика информационной безопасности</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="discipline-actions">
+          <button class="discipline-action discipline-action--return" id="return-button" type="button">Вернуться</button>
+          <button class="discipline-action discipline-action--clear" id="clear-button" type="button">Очистить выбор</button>
+          <button class="discipline-action discipline-action--confirm" id="confirm-button" type="button">Подтвердить выбор</button>
+        </div>
+      </section>
+
+      <button class="reopen-button" id="reopen-button" type="button" hidden>Выбрать дисциплины</button>
+      <p class="discipline-status" id="discipline-status" role="status" aria-live="polite"></p>
+    </main>
+
+    <script src="../js/pages/groups.js"></script>
+  </body>
+</html>
