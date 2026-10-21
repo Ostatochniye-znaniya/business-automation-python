@@ -70,39 +70,6 @@
       await dashboard();
     });
     periodSelect.addEventListener("change", dashboard);
-  } else if (page === "reports") {
-    const testingSelect = document.getElementById("testing");
-    let groupNames = new Map();
-    let disciplineNames = new Map();
-    const reports = () => run(async current => {
-      if (!testingSelect.value) { message("Выберите тестирование группы."); return; }
-      const data = await apiGetAll(`/reports?knowledge_test_id=${encodeURIComponent(testingSelect.value)}`);
-      if (!current()) return;
-      rows(data.map(report => [report.id, report.electronic_status, report.electronic_comment,
-        report.paper_status, report.paper_comment, report.final_status]));
-      message(data.length ? `Найдено отчётов: ${data.length}` : "Отчёты для выбранного тестирования пока не добавлены.");
-    });
-    const tests = () => run(async current => {
-      options(testingSelect, [], "Выберите тестирование");
-      if (!periodSelect.value) { message("Выберите период тестирования."); return; }
-      const data = await apiGetAll(`/testing?period_id=${encodeURIComponent(periodSelect.value)}`);
-      if (!current()) return;
-      options(testingSelect, data.map(test => [test.id,
-        `${groupNames.get(test.group_id) || `Группа №${test.group_id}`} — ${disciplineNames.get(test.discipline_id) || `Дисциплина №${test.discipline_id}`} (№${test.id})`]), "Выберите тестирование");
-      message(data.length ? "Выберите тестирование группы." : "В выбранном периоде нет тестирований.");
-    });
-    reload = () => run(async current => {
-      testingSelect.disabled = true;
-      const [periods, groups, disciplines] = await Promise.all([loadPeriods(), apiGetAll("/groups"), apiGetAll("/disciplines")]);
-      if (!current()) return;
-      groupNames = new Map(groups.map(group => [group.id, group.name]));
-      disciplineNames = new Map(disciplines.map(discipline => [discipline.id, discipline.name]));
-      if (!periods.length) { message("Периоды тестирования пока не добавлены."); return; }
-      if (!periodSelect.value) periodSelect.value = String(periods[0].id);
-      await tests();
-    });
-    periodSelect.addEventListener("change", tests);
-    testingSelect.addEventListener("change", reports);
   } else if (page === "access") {
     const search = document.getElementById("user-search");
     const role = document.getElementById("user-role");

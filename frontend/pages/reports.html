@@ -4,32 +4,81 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Отчёты — Остаточные знания</title>
-    <script src="/js/theme.js"></script>
-    <link rel="stylesheet" href="/css/base.css">
-    <link rel="stylesheet" href="/css/layout.css">
-    <link rel="stylesheet" href="/css/components.css">
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/pages/reports.css">
   </head>
   <body data-page="reports">
     <aside id="sidebar" class="sidebar"></aside>
     <main class="workspace">
-      <header class="workspace__header"><h1>Отчёты</h1></header>
-      <section class="workspace__content">
-        <div class="section-filters">
-        <label class="field" for="period"><span class="field__label">Период тестирования</span>
-          <select id="period" class="field__input" disabled><option value="">Выберите период</option></select>
-        </label>
-          <label class="field" for="testing"><span class="field__label">Тестирование группы</span>
-            <select id="testing" class="field__input" disabled><option value="">Выберите тестирование</option></select>
-          </label>
+      <header class="workspace__header reports-header">
+        <h1>Отчёты</h1>
+        <div class="reports-tabs" role="tablist" aria-label="Виды отчётов">
+          <button id="check-tab" class="reports-tab" role="tab" aria-selected="true" aria-controls="check-panel" type="button">Отчёты проверки</button>
+          <button id="summary-tab" class="reports-tab" role="tab" aria-selected="false" aria-controls="summary-panel" type="button">Сводные отчёты</button>
         </div>
-        <p id="section-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
-        <button id="section-retry" class="button" type="button" hidden>Повторить загрузку</button>
-        <div class="table-scroll"><table class="table"><thead><tr><th scope="col">№</th><th scope="col">Электронный отчёт</th><th scope="col">Комментарий</th><th scope="col">Бумажный отчёт</th><th scope="col">Комментарий</th><th scope="col">Итоговый статус</th></tr></thead><tbody id="section-rows"></tbody></table></div>
+      </header>
+
+      <section class="workspace__content">
+        <section id="check-panel" role="tabpanel" aria-labelledby="check-tab">
+          <div class="reports-filters">
+            <label class="field" for="period"><span class="field__label">Период тестирования</span>
+              <select id="period" class="field__input" disabled><option value="">Выберите период</option></select>
+            </label>
+            <label class="field" for="testing"><span class="field__label">Тестирование группы</span>
+              <select id="testing" class="field__input" disabled><option value="">Выберите тестирование</option></select>
+            </label>
+            <label class="field" for="electronic-filter"><span class="field__label">Статус электронного отчёта</span>
+              <select id="electronic-filter" class="field__input"></select>
+            </label>
+            <label class="field" for="paper-filter"><span class="field__label">Статус бумажного отчёта</span>
+              <select id="paper-filter" class="field__input"></select>
+            </label>
+          </div>
+
+          <p id="reports-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
+          <button id="reports-retry" class="button" type="button" hidden>Повторить загрузку</button>
+
+          <p id="reports-statistics" class="reports-statistics" hidden>
+            <strong>Статистика по выбранному тестированию:</strong>
+            <span id="statistics-electronic"></span>
+            <span id="statistics-paper"></span>
+          </p>
+
+          <div class="table-scroll">
+            <table class="table reports-table">
+              <thead><tr>
+                <th scope="col">Группа</th>
+                <th scope="col">Дисциплина</th>
+                <th scope="col">Электронный отчёт</th>
+                <th scope="col">Бумажный отчёт</th>
+                <th scope="col" aria-label="Действия"></th>
+              </tr></thead>
+              <tbody id="reports-rows"></tbody>
+            </table>
+          </div>
+
+          <nav id="reports-pagination" class="reports-pagination" aria-label="Пагинация отчётов" hidden></nav>
+        </section>
+
+        <section id="summary-panel" role="tabpanel" aria-labelledby="summary-tab" hidden>
+          <div class="reports-summary-toolbar">
+            <button id="create-summary" class="button button--primary" type="button">＋ Сформировать новый сводный отчёт</button>
+            <label class="reports-search"><span aria-hidden="true">⌕</span>
+              <input id="summary-search" type="search" placeholder="Введите слово" autocomplete="off" aria-label="Поиск сводного отчёта">
+            </label>
+          </div>
+          <div id="summary-list" class="reports-summary-list"></div>
+          <p id="summary-empty" class="section-status" hidden>Сводные отчёты не найдены.</p>
+        </section>
       </section>
     </main>
-    <script src="/js/layout.js"></script>
+
+    <script src="../js/layout.js"></script>
     <script src="/app-config.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/pages/sections.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/pages/reports.js"></script>
   </body>
 </html>
