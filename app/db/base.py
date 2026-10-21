@@ -21,3 +21,5 @@ def register_models() -> None:
         "reports",
     ):
         import_module(f"app.modules.{module}.models")
+
+    import_module("app.modules.groups.recommendation_models")

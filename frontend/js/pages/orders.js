@@ -12,8 +12,8 @@
     checkSummaryDate: '2024-07-19', surveySummaryDate: '2024-06-30', reportsDate: '2024-06-28',
     surveyMode: 'exact', surveyDate: '2024-06-04', surveyStart: '2024-06-04', surveyEnd: '2024-06-04'
   };
-  let orders = seedOrders.map((order) => ({ ...defaults, ...order }));
-  let nextId = 7;
+  let orders = (window.APP_CONFIG?.demoData ? seedOrders : []).map((order) => ({ ...defaults, ...order }));
+  let nextId = orders.length + 1;
   let activeOrderId = null;
 
   const $ = (id) => document.getElementById(id);

@@ -1,79 +1,55 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 
-* {
-  margin: 0;
-  padding: 0;
-}
-
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
 :root {
-  --bg: #f5f6f8;
+  color-scheme: light;
+  --bg: #fafafa;
   --panel: #ffffff;
-  --text: #1f2328;
-  --muted: #6b7280;
-  --line: #e2e5ea;
-  --accent: #4f5bd5;
-  --accent-soft: #eef0ff;
-  --success: #2f9e6e;
-  --warning: #c9821f;
+  --text: #333333;
+  --muted: #555555;
+  --line: #d0d0d0;
+  --accent: #5c67e8;
+  --accent-soft: #e9e9ed;
+  --success: #238359;
+  --warning: #996012;
   --danger: #c9403a;
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #1f2328;
-  --sidebar-line: #e2e5ea;
-  --workspace-bg: #f5f6f8;
-  --radius: 8px;
+  --input-bg: #eeeeee;
+  --table-head: #e7e7e7;
+  --table-row: #f4f4f4;
+  --radius: 6px;
   --gap: 16px;
 }
-
 [data-theme="dark"] {
-  --bg: #15171c;
-  --panel: #1e2128;
-  --text: #e8eaee;
-  --muted: #9aa1ad;
-  --line: #2c313a;
-  --accent: #8b93f0;
-  --accent-soft: #272c40;
+  color-scheme: dark;
+  --bg: #3a3a3a;
+  --panel: #2e2e2e;
+  --text: #eeeeee;
+  --muted: #cccccc;
+  --line: #555555;
+  --accent: #b6bfff;
+  --accent-soft: #38383d;
   --success: #4cc38a;
   --warning: #e0a24a;
-  --danger: #e5695f;
-  --sidebar-bg: #2e2e2e;
-  --sidebar-text: #ffffff;
-  --sidebar-line: #5b5b5b;
-  --workspace-bg: #3a3a3a;
+  --danger: #ffabb4;
+  --input-bg: #252525;
+  --table-head: #252525;
+  --table-row: #303030;
 }
-
-html,
+html, body { min-height: 100%; }
 body {
-  height: 100%;
-}
-
-body {
-  background-color: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
-  font-size: 15px;
-  line-height: 1.5;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  background: linear-gradient(180deg, #aeb4f3 0 48%, #ffffff 78%);
+  background-attachment: fixed;
+  font: 500 14px/1.4 Montserrat, Arial, Helvetica, sans-serif;
 }
-
-body.modal-open {
-  overflow: hidden;
+[data-theme="dark"] body { background: #3a3a3a; }
+h1 { font-size: 27px; font-weight: 700; line-height: 1.2; }
+h2 { font-size: 18px; font-weight: 600; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
-
-h1 {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-h2 {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
+[hidden] { display: none !important; }

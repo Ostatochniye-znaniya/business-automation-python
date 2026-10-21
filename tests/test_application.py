@@ -31,3 +31,11 @@ async def test_swagger_and_openapi(client):
         "/api/testing",
         "/api/users",
     } <= paths
+
+
+async def test_frontend_config(client):
+    response = await client.get("/app-config.js")
+    assert response.status_code == 200
+    assert '"apiBase": "/api"' in response.text
+    assert "DATABASE_URL" not in response.text
+    assert response.headers["cache-control"] == "no-store"

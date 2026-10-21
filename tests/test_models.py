@@ -8,7 +8,7 @@ from app.db.base import Base, register_models
 def test_models_and_foreign_keys():
     register_models()
     configure_mappers()
-    assert len(Base.metadata.tables) == 9
+    assert len(Base.metadata.tables) == 13
     for table in Base.metadata.sorted_tables:
         assert str(CreateTable(table).compile(dialect=mysql.dialect()))
         for foreign_key in table.foreign_keys:

@@ -28,3 +28,10 @@ class ParticipationStatus(StrEnum):
     PASSED = "PASSED"
     ABSENT = "ABSENT"
     NOT_ADMITTED = "NOT_ADMITTED"
+
+
+class KnowledgeTestStatus(StrEnum):
+    PLANNED = "PLANNED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"

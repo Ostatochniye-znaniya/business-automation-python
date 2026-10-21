@@ -1,31 +1,37 @@
 <!doctype html>
 <html lang="ru">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Остаточные знания</title>
-    <script>
-      (function () {
-        if (localStorage.getItem("theme") === "dark") {
-          document.documentElement.dataset.theme = "dark";
-        }
-      })();
-    </script>
-    <link rel="stylesheet" href="./css/base.css" />
-    <link rel="stylesheet" href="./css/layout.css" />
-    <link rel="stylesheet" href="./css/components.css" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Главная — Остаточные знания</title>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
   </head>
-  <body>
+  <body data-page="home">
     <aside id="sidebar" class="sidebar"></aside>
     <main class="workspace">
-      <header class="workspace__header">
-        <h1>Главная</h1>
-      </header>
+      <header class="workspace__header"><h1>Главная</h1></header>
       <section class="workspace__content">
-        <p class="empty">Выберите раздел в меню слева.</p>
+        <p class="section-intro">Проверка остаточных знаний: группы, тестирования и отчёты.</p>
+        <div class="section-links">
+          <a class="section-link" href="/pages/orders.html"><strong>Приказы</strong><span>Просмотр приказов и работа с черновиками.</span></a>
+          <a class="section-link" href="/pages/groups.html"><strong>Списки рекомендуемых групп</strong><span>Выбор групп и просмотр тестирований по семестрам.</span></a>
+        </div>
+        <h2 class="section-caption">Сводка по подразделениям</h2>
+        <label class="field" for="period"><span class="field__label">Период тестирования</span>
+          <select id="period" class="field__input" disabled><option value="">Выберите период</option></select>
+        </label>
+        <p id="section-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
+        <button id="section-retry" class="button" type="button" hidden>Повторить загрузку</button>
+        <div class="table-scroll"><table class="table"><thead><tr><th scope="col">Подразделение</th><th scope="col">Группы: факт / план</th><th scope="col">Дисциплины: факт / план</th><th scope="col">Электронные отчёты</th><th scope="col">Бумажные отчёты</th></tr></thead><tbody id="section-rows"></tbody></table></div>
+        <p class="section-intro">Прочерк означает, что показатель пока не рассчитан.</p>
       </section>
     </main>
-    <script src="./js/layout.js"></script>
-    <script src="./js/api.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/app-config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/pages/sections.js"></script>
   </body>
 </html>

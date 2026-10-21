@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -10,6 +12,13 @@ from app.core.exceptions import (
     ValidationError,
 )
 
+logger = logging.getLogger(__name__)
+
+
+async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error("Unhandled error: %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse(status_code=500, content={"detail": "Внутренняя ошибка сервера"})
+
 
 async def application_error_handler(request: Request, exc: ApplicationError) -> JSONResponse:
     codes = {
@@ -19,8 +28,11 @@ async def application_error_handler(request: Request, exc: ApplicationError) -> 
         ValidationError: 422,
         FeatureNotImplementedError: 501,
     }
-    return JSONResponse(status_code=codes.get(type(exc), 400), content={"detail": str(exc)})
+    status = next((code for kind, code in codes.items() if isinstance(exc, kind)), 400)
+    logger.warning("Application error: %s %s status=%s", request.method, request.url.path, status)
+    return JSONResponse(status_code=status, content={"detail": str(exc)})
 
 
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ApplicationError, application_error_handler)
+    app.add_exception_handler(Exception, unexpected_error_handler)
