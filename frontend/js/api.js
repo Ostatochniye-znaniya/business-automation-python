@@ -45,6 +45,10 @@ function apiPost(path, body) {
   return request("POST", path, body);
 }
 
+function apiPut(path, body) {
+  return request("PUT", path, body);
+}
+
 // API lists are paginated: reference data must not stop at the first 100 rows.
 async function apiGetAll(path) {
   const items = [];

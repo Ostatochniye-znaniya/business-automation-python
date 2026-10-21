@@ -14,3 +14,10 @@ class UserCreate(BaseModel):
 class UserRead(UserCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
+
+class UserUpdate(BaseModel):
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
+    email: str | None = Field(default=None, max_length=255)
+    is_active: bool | None = None
+    role: UserRole | None = None

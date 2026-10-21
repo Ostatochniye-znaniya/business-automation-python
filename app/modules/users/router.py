@@ -3,9 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import UserRole
+from app.core.exceptions import ForbiddenError
 from app.db.dependencies import get_db_session
 from app.modules.users.dependencies import get_current_user
-from app.modules.users.schemas import UserRead
+from app.modules.users.schemas import UserRead, UserUpdate
 from app.modules.users.service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -34,3 +36,15 @@ async def get_entity(
     entity_id: int, service: Annotated[UserService, Depends(get_service)]
 ) -> UserRead:
     return await service.get_by_id(entity_id)
+
+
+@router.put("/{entity_id}", response_model=UserRead)
+async def update_entity(
+    entity_id: int,
+    data: UserUpdate,
+    actor: Annotated[UserRead, Depends(get_current_user)],
+    service: Annotated[UserService, Depends(get_service)],
+) -> UserRead:
+    if actor.role not in {UserRole.ADMIN, UserRole.LPR}:
+        raise ForbiddenError("Недостаточно прав для изменения пользователей")
+    return await service.update_user(entity_id, data)

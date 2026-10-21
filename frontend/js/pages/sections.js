@@ -110,19 +110,96 @@
     Object.entries(roles).forEach(([value, title]) => role.add(new Option(title, value)));
     let users = [];
     let loaded = false;
+    let canEdit = false;
+    const makeInput = (value, type) => {
+      const input = document.createElement("input");
+      input.className = "field__input access-editor";
+      input.type = type || "text";
+      if (type === "checkbox") input.checked = Boolean(value);
+      else input.value = value || "";
+      return input;
+    };
+    const makeRole = value => {
+      const select = document.createElement("select");
+      select.className = "field__input access-editor";
+      Object.entries(roles).forEach(([key, title]) => select.add(new Option(title, key)));
+      select.value = value;
+      return select;
+    };
+    const renderUsers = filtered => {
+      body.replaceChildren();
+      filtered.forEach(user => {
+        const row = document.createElement("tr");
+        [user.full_name, user.email || "—", roles[user.role] || user.role,
+          user.is_active ? "Активен" : "Отключён"].forEach(value => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.append(cell);
+        });
+        const actions = document.createElement("td");
+        if (canEdit) {
+          const edit = document.createElement("button");
+          edit.className = "button";
+          edit.type = "button";
+          edit.textContent = "Изменить";
+          edit.addEventListener("click", () => {
+            const name = makeInput(user.full_name);
+            const email = makeInput(user.email);
+            const userRole = makeRole(user.role);
+            const active = makeInput(user.is_active, "checkbox");
+            [name, email, userRole, active].forEach((input, index) => {
+              const cell = row.children[index];
+              cell.replaceChildren(input);
+            });
+            actions.replaceChildren();
+            const save = document.createElement("button");
+            save.className = "button button--primary";
+            save.type = "button";
+            save.textContent = "Сохранить";
+            save.addEventListener("click", async () => {
+              save.disabled = true;
+              try {
+                const updated = await apiPut(`/users/${encodeURIComponent(user.id)}`, {
+                  full_name: name.value.trim(),
+                  email: email.value.trim() || null,
+                  is_active: active.checked,
+                  role: userRole.value,
+                });
+                Object.assign(user, updated);
+                message("Данные пользователя сохранены.");
+                filter();
+              } catch (error) {
+                message(`Не удалось сохранить данные: ${error.message}`, true);
+                save.disabled = false;
+              }
+            });
+            actions.append(save);
+          });
+          actions.append(edit);
+        } else {
+          actions.textContent = "Только просмотр";
+        }
+        row.append(actions);
+        body.append(row);
+      });
+    };
     const filter = () => {
       if (!loaded) return;
       const query = search.value.trim().toLocaleLowerCase("ru-RU");
       const filtered = users.filter(user => (!role.value || role.value === user.role) &&
         `${user.full_name} ${user.email || ""}`.toLocaleLowerCase("ru-RU").includes(query));
-      rows(filtered.map(user => [user.full_name, user.email, roles[user.role] || user.role, user.is_active ? "Активен" : "Отключён"]));
+      renderUsers(filtered);
       message(filtered.length ? `Найдено пользователей: ${filtered.length}` : "Пользователи не найдены.");
     };
     reload = () => run(async current => {
       loaded = false;
-      const data = await apiGetAll("/users");
+      const [data, actor] = await Promise.all([
+        apiGetAll("/users"),
+        apiGet("/users/me").catch(() => null),
+      ]);
       if (!current()) return;
       users = data;
+      canEdit = Boolean(actor && actor.is_active && ["ADMIN", "LPR"].includes(actor.role));
       loaded = true;
       filter();
     });
