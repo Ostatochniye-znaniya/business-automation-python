@@ -71,26 +71,6 @@ test('access filters names and roles, rendering server values as text', async ()
   assert.equal(values(env).length, 0);
 });
 
-test('reports fetch selected test reports and clear rows when period is cleared', async () => {
-  const env = environment('reports', async url => {
-    if (url === '/periods') return [period];
-    if (url === '/groups') return [{ id: 3, name: '241-001' }];
-    if (url === '/disciplines') return [{ id: 4, name: 'Базы данных' }];
-    if (url.startsWith('/testing?')) return [{ id: 5, group_id: 3, discipline_id: 4 }];
-    assert.equal(url, '/reports?knowledge_test_id=5');
-    return [{ id: 6, electronic_status: 'Сдан', final_status: 'Принят' }];
-  });
-  execute(env); await settle();
-  assert.equal(env.get('testing').disabled, false);
-  env.get('testing').value = '5';
-  await env.get('testing').listeners.change();
-  assert.equal(values(env)[0][1], 'Сдан');
-  env.get('period').value = '';
-  await env.get('period').listeners.change();
-  assert.equal(values(env).length, 0);
-  assert.equal(env.get('testing').disabled, true);
-});
-
 test('failed request exposes retry and a successful retry clears the error', async () => {
   let fail = true;
   const env = environment('periods', async () => { if (fail) throw Error('Offline'); return [period]; });

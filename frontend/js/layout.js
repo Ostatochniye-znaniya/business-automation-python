@@ -8,6 +8,11 @@ const SECTIONS = [
 ];
 
 const THEME_KEY = "theme";
+// Статические ссылки на ассеты строятся относительно текущей страницы:
+// индекс лежит в корне, все разделы — в pages/.
+function assetRoot() {
+  return window.location.pathname.includes("/pages/") ? ".." : ".";
+}
 function currentPath() {
   const path = window.location.pathname.replace(/index\.html$/, "");
   return path === "" ? "/" : path;
@@ -30,7 +35,7 @@ function renderSidebar() {
     return '<a class="sidebar__link' + modifier + '" href="' + section.href + '"' + (isActive ? ' aria-current="page"' : '') + '>' + dot + '<span>' + section.title + '</span></a>';
   }).join("");
   sidebar.innerHTML =
-    '<div class="sidebar__brand"><img class="sidebar__logo sidebar__logo--light" src="/assets/logo_light.png" alt="Московский Политех"><img class="sidebar__logo sidebar__logo--dark" src="/assets/logo_dark.png" alt="Московский Политех"></div>' +
+    '<div class="sidebar__brand"><img class="sidebar__logo sidebar__logo--light" src="' + assetRoot() + '/assets/logo_light.png" alt="Московский Политех"><img class="sidebar__logo sidebar__logo--dark" src="' + assetRoot() + '/assets/logo_dark.png" alt="Московский Политех"></div>' +
     '<div class="sidebar__divider"></div>' +
     '<div class="sidebar__project">Проверка<br>остаточных знаний</div>' +
     '<div class="sidebar__profile"><div class="sidebar__avatar" aria-hidden="true"></div><div class="sidebar__profile-name">Иванов<br>Иван Иванович</div></div>' +
