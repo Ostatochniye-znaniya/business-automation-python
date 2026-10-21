@@ -1,32 +1,224 @@
 <!doctype html>
 <html lang="ru">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Настройки доступа — Остаточные знания</title>
-    <script src="/js/theme.js"></script>
-    <link rel="stylesheet" href="/css/base.css">
-    <link rel="stylesheet" href="/css/layout.css">
-    <link rel="stylesheet" href="/css/components.css">
+    <script>
+      (function () {
+        if (localStorage.getItem("theme") !== "light") {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="../css/base.css?v=2" />
+    <link rel="stylesheet" href="../css/layout.css?v=2" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/access.css?v=2" />
   </head>
-  <body data-page="access">
+  <body>
     <aside id="sidebar" class="sidebar"></aside>
     <main class="workspace">
-      <header class="workspace__header"><h1>Настройки доступа</h1></header>
-      <section class="workspace__content">
-        <p class="section-intro">Пользователи и назначенные роли в системе.</p>
-        <div class="section-filters">
-          <label class="field" for="user-search"><span class="field__label">ФИО или электронная почта</span><input id="user-search" class="field__input" type="search" placeholder="Поиск пользователя"></label>
-          <label class="field" for="user-role"><span class="field__label">Роль в системе</span><select id="user-role" class="field__input"><option value="">Все роли</option></select></label>
+      <header class="workspace__header">
+        <h1>Настройки доступа</h1>
+      </header>
+      <section class="workspace__content access-page">
+        <div class="access-panel">
+          <div class="access-panel__heading">
+            <h1>Настройки доступа</h1>
+          </div>
+          <div class="access-panel__toolbar">
+            <div class="access-panel__view-switcher" aria-label="Вид списка">
+              <button class="icon-button icon-button--active" type="button" aria-label="Таблица" title="Таблица">
+                <img src="../assets/Icon.png" alt="" />
+              </button>
+              <button class="icon-button" type="button" aria-label="Список" title="Список">
+                <img src="../assets/Icon (1).png" alt="" />
+              </button>
+            </div>
+            <button class="button button--primary access-panel__add" id="add-user" type="button">
+              <span aria-hidden="true">+</span>
+              Добавить участника
+            </button>
+            <button class="button access-panel__select" id="select-users" type="button">Выбрать</button>
+          </div>
+
+          <div class="access-panel__search" aria-label="Поиск пользователей">
+            <span aria-hidden="true">⌕</span>
+            <span>Введите сюда</span>
+          </div>
+
+          <div class="access-table-wrapper">
+            <table class="access-table">
+              <thead>
+                <tr>
+                  <th>ФИО</th>
+                  <th>Структурное<br />подразделение</th>
+                  <th>Должность</th>
+                  <th>Начало работы</th>
+                  <th>Конец работы</th>
+                  <th>Флаг<br />активности</th>
+                  <th>Категория<br />сотрудника</th>
+                  <th>Данные<br />обновлены</th>
+                  <th class="access-table__actions-column"><span class="visually-hidden">Действия</span></th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr data-user-id="1">
+                  <td>Иван<br />Иванов<br />Иванович</td>
+                  <td>ФИТ</td>
+                  <td>Преподаватель</td>
+                  <td>12.12.2021</td>
+                  <td>12.01.2023</td>
+                  <td>Активный</td>
+                  <td>Преподаватель</td>
+                  <td>12.01.2023</td>
+                  <td class="access-table__actions">
+                    <button class="row-action row-action--edit" type="button" data-action="edit" aria-label="Редактировать">✎</button>
+                    <button class="row-action row-action--delete" type="button" data-action="delete" aria-label="Удалить">×</button>
+                  </td>
+                </tr>
+                <tr data-user-id="2">
+                  <td>Иван<br />Иванов<br />Иванович</td>
+                  <td>ИТ</td>
+                  <td>Гость</td>
+                  <td>02.02.2020</td>
+                  <td>13.11.2024</td>
+                  <td>Неактивный</td>
+                  <td>Гость</td>
+                  <td>13.11.2024</td>
+                  <td class="access-table__actions">
+                    <button class="row-action row-action--edit" type="button" data-action="edit" aria-label="Редактировать">✎</button>
+                    <button class="row-action row-action--delete" type="button" data-action="delete" aria-label="Удалить">×</button>
+                  </td>
+                </tr>
+                <tr data-user-id="3">
+                  <td>Иван<br />Иванов<br />Иванович</td>
+                  <td>ИЭФ</td>
+                  <td>Руководитель<br />подразделения</td>
+                  <td>11.08.2021</td>
+                  <td>12.04.2022</td>
+                  <td>Активный</td>
+                  <td>Руководитель<br />подразделения</td>
+                  <td>12.04.2022</td>
+                  <td class="access-table__actions">
+                    <button class="row-action row-action--edit" type="button" data-action="edit" aria-label="Редактировать">✎</button>
+                    <button class="row-action row-action--delete" type="button" data-action="delete" aria-label="Удалить">×</button>
+                  </td>
+                </tr>
+                <tr data-user-id="4">
+                  <td>Иван<br />Иванов<br />Иванович</td>
+                  <td>ФИТ</td>
+                  <td>Преподаватель</td>
+                  <td>10.10.2024</td>
+                  <td>01.02.2025</td>
+                  <td>Активный</td>
+                  <td>Преподаватель</td>
+                  <td>01.02.2025</td>
+                  <td class="access-table__actions">
+                    <button class="row-action row-action--edit" type="button" data-action="edit" aria-label="Редактировать">✎</button>
+                    <button class="row-action row-action--delete" type="button" data-action="delete" aria-label="Удалить">×</button>
+                  </td>
+                </tr>
+                <tr data-user-id="5">
+                  <td>Иван<br />Иванов<br />Иванович</td>
+                  <td>ФИТ</td>
+                  <td>Преподаватель</td>
+                  <td>03.12.2019</td>
+                  <td>16.12.2021</td>
+                  <td>Неактивный</td>
+                  <td>Преподаватель</td>
+                  <td>16.12.2021</td>
+                  <td class="access-table__actions">
+                    <button class="row-action row-action--edit" type="button" data-action="edit" aria-label="Редактировать">✎</button>
+                    <button class="row-action row-action--delete" type="button" data-action="delete" aria-label="Удалить">×</button>
+                  </td>
+                </tr>
+                <tr data-user-id="6">
+                  <td>Иван<br />Иванов<br />Иванович</td>
+                  <td>ЭФ</td>
+                  <td>Преподаватель</td>
+                  <td>15.09.2021</td>
+                  <td>19.07.2023</td>
+                  <td>Активный</td>
+                  <td>Преподаватель</td>
+                  <td>19.07.2023</td>
+                  <td class="access-table__actions">
+                    <button class="row-action row-action--edit" type="button" data-action="edit" aria-label="Редактировать">✎</button>
+                    <button class="row-action row-action--delete" type="button" data-action="delete" aria-label="Удалить">×</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <p id="section-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
-        <button id="section-retry" class="button" type="button" hidden>Повторить загрузку</button>
-        <div class="table-scroll"><table class="table"><thead><tr><th scope="col">ФИО</th><th scope="col">Электронная почта</th><th scope="col">Роль в системе</th><th scope="col">Доступ</th></tr></thead><tbody id="section-rows"></tbody></table></div>
       </section>
     </main>
-    <script src="/js/layout.js"></script>
-    <script src="/app-config.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/pages/sections.js"></script>
+
+    <div class="modal-backdrop" id="user-modal" hidden>
+      <section class="user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+        <h2 id="user-modal-title">Добавить участника</h2>
+        <form id="user-form">
+          <input id="user-id" type="hidden" />
+          <label class="form-field">
+            <span>Полное имя</span>
+            <input id="user-name" name="name" type="text" placeholder="Иванов Иван Иванович" required />
+          </label>
+          <label class="form-field">
+            <span>Структурное подразделение</span>
+            <input id="user-department" name="department" type="text" placeholder="Отдел разработки" required />
+          </label>
+          <label class="form-field">
+            <span>Должность</span>
+            <input id="user-position" name="position" type="text" placeholder="Старший разработчик" required />
+          </label>
+          <label class="form-field">
+            <span>Начало работы</span>
+            <input id="user-start-date" name="startDate" type="date" required />
+          </label>
+          <label class="form-field">
+            <span>Конец работы</span>
+            <input id="user-end-date" name="endDate" type="date" />
+          </label>
+          <label class="form-field form-field--switch">
+            <span>Флаг активности</span>
+            <input id="user-active" name="active" type="checkbox" checked />
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+          <label class="form-field">
+            <span>Категория сотрудника</span>
+            <select id="user-category" name="category">
+              <option>Преподаватель</option>
+              <option>Гость</option>
+              <option>Руководитель подразделения</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Когда обновлены данные</span>
+            <input id="user-updated" name="updated" type="text" placeholder="31.10.2025 14:30" />
+          </label>
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+          <div class="user-modal__actions">
+            <button class="button button--primary" type="submit">Сохранить</button>
+            <button class="button" id="cancel-user" type="button">Отменить</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div class="modal-backdrop modal-backdrop--compact" id="delete-modal" hidden>
+      <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+        <h2 id="delete-modal-title">Удалить участника?</h2>
+        <p>Запись будет удалена из списка. Это действие нельзя отменить.</p>
+        <div class="user-modal__actions">
+          <button class="button button--danger" id="confirm-delete" type="button">Удалить</button>
+          <button class="button" id="cancel-delete" type="button">Отменить</button>
+        </div>
+      </section>
+    </div>
+
+    <script src="/js/theme.js"></script>
+    <script src="../js/layout.js"></script>
+    <script src="../js/access.js"></script>
   </body>
 </html>

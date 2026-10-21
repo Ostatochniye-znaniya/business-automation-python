@@ -30,23 +30,22 @@ function renderSidebar() {
     return '<a class="sidebar__link' + modifier + '" href="' + section.href + '"' + (isActive ? ' aria-current="page"' : '') + '>' + dot + '<span>' + section.title + '</span></a>';
   }).join("");
   sidebar.innerHTML =
-    '<div class="sidebar__brand"><img class="sidebar__logo sidebar__logo--light" src="/assets/logo_light.png" alt="Московский Политех"><img class="sidebar__logo sidebar__logo--dark" src="/assets/logo_dark.png" alt="Московский Политех"></div>' +
-    '<div class="sidebar__divider"></div>' +
+    '<div class="sidebar__brand"><img class="sidebar__logo" id="sidebar-logo" src="../assets/logo_light.png" alt="Московский Политех" /></div>' +
     '<div class="sidebar__project">Проверка<br>остаточных знаний</div>' +
     '<div class="sidebar__profile"><div class="sidebar__avatar" aria-hidden="true"></div><div class="sidebar__profile-name">Иванов<br>Иван Иванович</div></div>' +
     '<nav class="sidebar__nav" aria-label="Основная навигация">' + links + '</nav>' +
-    '<div class="sidebar__footer"><span class="sidebar__theme-label" id="theme-label">Тёмная тема</span><label class="sidebar__theme-switch" aria-label="Переключить тему"><input type="checkbox" id="theme-toggle" aria-label="Переключить тему"><span class="sidebar__theme-slider"><span class="sidebar__theme-knob"></span></span></label></div>';
+    '<div class="sidebar__footer"><button class="button button--secondary" type="button" id="theme-toggle"></button></div>';
   const toggle = document.getElementById("theme-toggle");
-  const label = document.getElementById("theme-label");
-  function syncThemeControl() {
+  const logo = document.getElementById("sidebar-logo");
+  function updateThemeButton() {
     const dark = currentTheme() === "dark";
-    toggle.checked = dark;
-    label.textContent = dark ? "Светлая тема" : "Тёмная тема";
+    toggle.textContent = dark ? "Светлая тема" : "Тёмная тема";
+    logo.src = dark ? "../assets/logo_dark.png" : "../assets/logo_light.png";
   }
-  syncThemeControl();
-  toggle.addEventListener("change", function () {
-    applyTheme(toggle.checked ? "dark" : "light");
-    syncThemeControl();
+  updateThemeButton();
+  toggle.addEventListener("click", function () {
+    applyTheme(currentTheme() === "dark" ? "light" : "dark");
+    updateThemeButton();
   });
 }
 renderSidebar();
