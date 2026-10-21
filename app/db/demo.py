@@ -75,9 +75,7 @@ async def _insert_demo_data(session: AsyncSession) -> None:
             email="teacher@example.test",
             role=UserRole.TEACHER,
         ),
-        User(
-            external_id="demo:guest", full_name="Демо Гость", role=UserRole.GUEST, is_active=False
-        ),
+        User(external_id="demo:guest", full_name="Демо Гость", role=UserRole.GUEST, is_active=True),
     ]
     faculties = [
         Department(
@@ -96,6 +94,28 @@ async def _insert_demo_data(session: AsyncSession) -> None:
     ]
     session.add_all([*users, *faculties])
     await session.flush()
+    users[2].department_id = faculties[0].id
+    teachers = [
+        users[2],
+        *[
+            User(
+                external_id=f"demo:teacher:{index}",
+                full_name=f"Демо Преподаватель {index + 1}",
+                role=UserRole.TEACHER,
+                department_id=faculty.id,
+            )
+            for index, faculty in enumerate(faculties[1:], 1)
+        ],
+    ]
+    session.add_all(teachers[1:])
+    session.add(
+        User(
+            external_id="demo:chair",
+            full_name="Демо Заведующий кафедрой",
+            role=UserRole.CHAIR_HEAD,
+            department_id=faculties[0].id,
+        )
+    )
     programs = [
         StudyProgram(
             name="Демо: информационные системы и технологии",
@@ -182,7 +202,9 @@ async def _insert_demo_data(session: AsyncSession) -> None:
                 group_id=group.id,
                 period_id=period.id,
                 discipline_id=disciplines[index % len(disciplines)].id,
-                teacher_id=users[2].id,
+                teacher_id=teachers[index % len(teachers)].id,
+                agreement_status="AGREED",
+                room="Демо аудитория 101",
                 status=status,
                 scheduled_at=datetime.combine(
                     today if period.status == TestingPeriodStatus.OPEN else period.start_date,
@@ -200,12 +222,12 @@ async def _insert_demo_data(session: AsyncSession) -> None:
         session.add(
             Report(
                 knowledge_test_id=test.id,
-                electronic_status="Принят" if completed else "На проверке",
+                electronic_status="APPROVED" if completed else "DRAFT",
                 electronic_comment="Демонстрационный отчёт"
                 if completed
                 else "Демо: ожидается проверка",
-                paper_status="Получен" if completed else "Не сдан",
-                final_status="Принят" if completed else "В работе",
+                paper_status="APPROVED" if completed else "MISSING",
+                final_status="COMPLETE" if completed else "PENDING",
             )
         )
         if completed:

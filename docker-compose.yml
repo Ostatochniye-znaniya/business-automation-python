@@ -11,6 +11,8 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+    volumes:
+      - report_files:/code/storage
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
@@ -43,3 +45,4 @@ services:
       start_period: 30s
 volumes:
   mysql_data:
+  report_files:

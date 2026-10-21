@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     SERVE_FRONTEND: bool = False
     DEMO_DATA: bool = False
     DEV_USER_ID: int | None = Field(default=None, gt=0)
+    REPORT_STORAGE_DIR: str = "storage/reports"
+    MAX_REPORT_BYTES: int = Field(default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
+    AUTH_INTROSPECTION_URL: str | None = None
+    AUTH_INTROSPECTION_CLIENT_ID: str | None = None
+    AUTH_INTROSPECTION_CLIENT_SECRET: str | None = None
 
     @field_validator("API_PREFIX")
     @classmethod

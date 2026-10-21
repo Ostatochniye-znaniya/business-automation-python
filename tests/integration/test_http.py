@@ -11,6 +11,7 @@ async def test_swagger_and_openapi(client):
 
 async def test_application_error_translation(client, application):
     from app.core.exceptions import NotFoundError
+    from app.modules.users.dependencies import require_staff
     from app.modules.users.router import get_service
 
     class MissingUserService:
@@ -18,6 +19,7 @@ async def test_application_error_translation(client, application):
             raise NotFoundError("User not found")
 
     application.dependency_overrides[get_service] = lambda: MissingUserService()
+    application.dependency_overrides[require_staff] = lambda: None
     try:
         response = await client.get("/api/users/999")
         assert response.status_code == 404

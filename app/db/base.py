@@ -19,6 +19,7 @@ def register_models() -> None:
         "testing",
         "results",
         "reports",
+        "orders",
     ):
         import_module(f"app.modules.{module}.models")
 

@@ -1,0 +1,59 @@
+.workbench-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.workflow-panel h2 {
+  margin: 24px 0 16px;
+  font-size: 1.2rem;
+}
+.workflow-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 16px 0 28px;
+  align-items: end;
+}
+.workflow-form label,
+.workflow-panel > label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.workflow-form input,
+.workflow-form select,
+.workflow-form textarea,
+.workflow-panel select,
+.workflow-panel input {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  padding: 10px;
+  border: 1px solid #9298a0;
+  border-radius: 6px;
+  max-width: 100%;
+}
+.workflow-form textarea {
+  min-height: 80px;
+}
+.workflow-panel .button {
+  margin: 6px 8px 8px 0;
+}
+#status[data-error="true"] {
+  color: #be3434;
+}
+#status {
+  min-height: 24px;
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 700px) {
+  .workflow-form {
+    grid-template-columns: 1fr;
+  }
+  .workbench-tabs .button {
+    flex: 1 1 45%;
+  }
+}

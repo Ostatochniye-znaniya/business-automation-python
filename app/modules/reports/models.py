@@ -14,3 +14,4 @@ class Report(Base):
     paper_status: Mapped[str | None] = mapped_column(String(32))
     paper_comment: Mapped[str | None] = mapped_column(Text)
     final_status: Mapped[str | None] = mapped_column(String(32))
+    previous_teacher_name: Mapped[str | None] = mapped_column(String(255))

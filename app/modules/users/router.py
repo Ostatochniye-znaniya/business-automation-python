@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.dependencies import get_db_session
-from app.modules.users.dependencies import get_current_user
+from app.modules.users.dependencies import get_current_user, require_staff
 from app.modules.users.schemas import UserRead
 from app.modules.users.service import UserService
 
@@ -15,7 +15,7 @@ def get_service(session: Annotated[AsyncSession, Depends(get_db_session)]) -> Us
     return UserService(session)
 
 
-@router.get("", response_model=list[UserRead])
+@router.get("", response_model=list[UserRead], dependencies=[Depends(require_staff)])
 async def list_entities(
     service: Annotated[UserService, Depends(get_service)],
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -29,7 +29,7 @@ async def current_user(actor: Annotated[UserRead, Depends(get_current_user)]) ->
     return actor
 
 
-@router.get("/{entity_id}", response_model=UserRead)
+@router.get("/{entity_id}", response_model=UserRead, dependencies=[Depends(require_staff)])
 async def get_entity(
     entity_id: int, service: Annotated[UserService, Depends(get_service)]
 ) -> UserRead:
