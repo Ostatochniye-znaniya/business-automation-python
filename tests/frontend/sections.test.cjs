@@ -12,15 +12,18 @@ class Element {
   replaceChildren(...children) { this.children = children; this.value = ''; }
   addEventListener(name, listener) { this.listeners[name] = listener; }
   setAttribute(name, value) { this[name] = value; }
+  checkValidity() { return true; }
+  reportValidity() {}
+  querySelector() { return new Element(); }
 }
-function environment(page, apiGetAll, apiGet = async () => ({})) {
+function environment(page, apiGetAll, apiGet = async () => ({}), apiPost = async () => ({})) {
   const elements = new Map();
   const document = {
     body: { dataset: { page } }, documentElement: { dataset: {} },
     getElementById(id) { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); },
     createElement: () => new Element(),
   };
-  const context = { document, apiGetAll, apiGet, Option: class {
+  const context = { document, apiGetAll, apiGet, apiPost, Option: class {
     constructor(text, value) { this.textContent = text; this.value = value; }
   }};
   vm.createContext(context);
@@ -101,6 +104,35 @@ test('failed request exposes retry and a successful retry clears the error', asy
   await env.get('section-retry').listeners.click();
   assert.equal(env.get('section-status').dataset.error, 'false');
   assert.equal(values(env)[0][5], 'Открыт');
+});
+
+test('period form saves values through the API and reloads the list', async () => {
+  let saved;
+  let loads = 0;
+  const env = environment('periods', async () => {
+    loads += 1;
+    return loads === 1 ? [period] : [{ ...period, id: 2, name: 'Новый период' }];
+  }, async () => ({}), async (url, body) => {
+    saved = { url, body };
+    return { ...period, id: 2, ...body };
+  });
+  execute(env); await settle();
+  env.get('period-name').value = 'Новый период';
+  env.get('period-academic-year').value = '2026/2027';
+  env.get('period-semester').value = '1';
+  env.get('period-start-date').value = '2026-09-01';
+  env.get('period-end-date').value = '2027-01-31';
+  env.get('period-status').value = 'DRAFT';
+  await env.get('period-form').listeners.submit({ preventDefault() {} });
+  await settle();
+  assert.equal(saved.url, '/periods');
+  assert.equal(saved.body.name, 'Новый период');
+  assert.equal(saved.body.academic_year, '2026/2027');
+  assert.equal(saved.body.semester, 1);
+  assert.equal(saved.body.start_date, '2026-09-01');
+  assert.equal(saved.body.end_date, '2027-01-31');
+  assert.equal(saved.body.status, 'DRAFT');
+  assert.equal(values(env)[0][0], 'Новый период');
 });
 
 test('theme bootstrap uses both old storage keys and survives unavailable storage', () => {

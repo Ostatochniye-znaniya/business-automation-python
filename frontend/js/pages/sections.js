@@ -131,6 +131,50 @@
   } else if (page === "periods") {
     const labels = { DRAFT: "Черновик", OPEN: "Открыт", CLOSED: "Завершён" };
     const date = value => new Date(`${value}T12:00:00`).toLocaleDateString("ru-RU");
+    const periodForm = document.getElementById("period-form");
+    const formStatus = document.getElementById("period-form-status");
+    const formFields = {
+      name: document.getElementById("period-name"),
+      academic_year: document.getElementById("period-academic-year"),
+      semester: document.getElementById("period-semester"),
+      start_date: document.getElementById("period-start-date"),
+      end_date: document.getElementById("period-end-date"),
+      status: document.getElementById("period-status"),
+    };
+    function formMessage(text, error = false) {
+      formStatus.textContent = text;
+      formStatus.dataset.error = String(error);
+    }
+    async function savePeriod(event) {
+      event.preventDefault();
+      if (!periodForm.checkValidity()) {
+        periodForm.reportValidity();
+        return;
+      }
+      const submit = periodForm.querySelector("button[type='submit']");
+      submit.disabled = true;
+      formMessage("Сохранение…");
+      try {
+        await apiPost("/periods", {
+          name: formFields.name.value.trim(),
+          academic_year: formFields.academic_year.value.trim(),
+          semester: Number(formFields.semester.value),
+          start_date: formFields.start_date.value,
+          end_date: formFields.end_date.value,
+          status: formFields.status.value,
+        });
+        formFields.name.value = "";
+        formFields.academic_year.value = "";
+        formFields.start_date.value = "";
+        formFields.end_date.value = "";
+        formMessage("Период сохранён.");
+        reload();
+      } catch (error) {
+        formMessage(`Не удалось сохранить период: ${error.message}`, true);
+      } finally {
+        submit.disabled = false;
+      }
+    }
     reload = () => run(async current => {
       const data = await apiGetAll("/periods");
       if (!current()) return;
@@ -138,6 +182,7 @@
         date(period.start_date), date(period.end_date), labels[period.status] || period.status]));
       message(data.length ? `Периодов тестирования: ${data.length}` : "Периоды тестирования пока не добавлены.");
     });
+    periodForm.addEventListener("submit", savePeriod);
   }
   if (reload) reload();
 })();
