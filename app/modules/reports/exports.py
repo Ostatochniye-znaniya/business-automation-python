@@ -35,6 +35,10 @@ class ExportService:
                 results = await ResultService(self.session).get_by_test(test.id, limit=100000)
                 reports = await ReportService(self.session).get_by_test(test.id)
                 report = reports[0] if reports else None
+                total_students = (
+                    await StudentService(self.session).count_by_groups({test.group_id})
+                ).get(test.group_id, 0)
+                participated = sum(r.participation_status == "PASSED" for r in results)
                 rows.append(
                     [
                         context["group"],
@@ -48,6 +52,9 @@ class ExportService:
                         sum(r.participation_status == "NOT_ADMITTED" for r in results),
                         report.electronic_status if report else "MISSING",
                         report.paper_status if report else "MISSING",
+                        total_students,
+                        round(100 * participated / total_students, 2) if total_students else 0,
+                        total_students > 0 and 2 * participated >= total_students,
                     ]
                 )
             offset += len(tests)
@@ -64,6 +71,9 @@ class ExportService:
                 "Не допущены",
                 "Электронный отчёт",
                 "Бумажный отчёт",
+                "Всего студентов в группе",
+                "Участие, %",
+                "Участвовали не менее 50%",
             ],
             rows,
         )

@@ -15,6 +15,22 @@ class ResultService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def participation_counts(self, test_ids: set[int]) -> dict[int, int]:
+        from sqlalchemy import func
+
+        return dict(
+            (
+                await self.session.execute(
+                    select(TestResult.knowledge_test_id, func.count(TestResult.id))
+                    .where(
+                        TestResult.knowledge_test_id.in_(test_ids),
+                        TestResult.participation_status == ParticipationStatus.PASSED,
+                    )
+                    .group_by(TestResult.knowledge_test_id)
+                )
+            ).all()
+        )
+
     async def has_student_results(self, student_id: int) -> bool:
         return bool(
             await self.session.scalar(

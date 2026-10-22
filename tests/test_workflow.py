@@ -390,3 +390,67 @@ async def test_catalog_creation_references_and_role_scope(client, workflow):
         await client.post("/api/catalog/programs", json={"name": "Запрещено", "faculty_id": 1})
     ).status_code == 403
     assert (await client.get("/api/students")).status_code == 403
+
+
+async def test_report_participation_threshold_uses_the_whole_roster(client, workflow):
+    identifier = await prepare_test(client, workflow)
+    session = workflow["session"]
+    session.add_all([Student(id=i, full_name=f"Студент {i}", group_id=1) for i in (2, 3, 4)])
+    await session.commit()
+    row = next(
+        row
+        for row in (await client.get("/api/reports/overview?period_id=1")).json()
+        if row["knowledge_test_id"] == identifier
+    )
+    assert (
+        row["total_students"],
+        row["participated_students"],
+        row["at_least_half_participated"],
+    ) == (4, 1, False)
+    assert row["participation_percentage"] == 25
+    response = await client.put(
+        "/api/results",
+        json={
+            "knowledge_test_id": identifier,
+            "student_id": 2,
+            "testing_result": 0,
+            "participation_status": "PASSED",
+        },
+    )
+    assert response.status_code == 200, response.text
+    for student_id, status in [(3, "ABSENT"), (4, "NOT_ADMITTED")]:
+        assert (
+            await client.put(
+                "/api/results",
+                json={
+                    "knowledge_test_id": identifier,
+                    "student_id": student_id,
+                    "participation_status": status,
+                },
+            )
+        ).status_code == 200
+    row = next(
+        row
+        for row in (await client.get("/api/reports/overview?period_id=1")).json()
+        if row["knowledge_test_id"] == identifier
+    )
+    assert row["at_least_half_participated"] is True
+    assert row["participation_percentage"] == 50
+
+
+async def test_report_participation_for_empty_group_is_false(client, workflow):
+    from sqlalchemy import delete
+
+    await workflow["session"].execute(delete(Student))
+    await workflow["session"].commit()
+    assert (
+        await client.put(
+            "/api/workflow/participation",
+            json={"group_id": 1, "period_id": 1, "participates": True, "discipline_ids": [1, 2]},
+        )
+    ).status_code == 200
+    rows = (await client.get("/api/reports/overview")).json()
+    assert len(rows) == 2
+    assert all(
+        row["total_students"] == 0 and row["at_least_half_participated"] is False for row in rows
+    )
