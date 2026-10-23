@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="../css/layout.css">
     <link rel="stylesheet" href="../css/components.css">
-    <link rel="stylesheet" href="../css/pages/groups.css">
+    <link rel="stylesheet" href="../css/pages/groups.css?v=discipline-selection-1">
   </head>
   <body class="groups-page">
     <aside id="sidebar" class="sidebar"></aside>
@@ -41,6 +41,7 @@
         </div>
         <p id="groups-status" role="status" aria-live="polite">Загрузка справочников…</p>
         <button id="retry" class="button" type="button" hidden>Повторить загрузку</button>
+        <p id="discipline-selection-status" class="section-status" role="status" aria-live="polite"></p>
         <div class="table-scroll">
           <table class="table" aria-label="Учебные группы">
             <thead id="groups-head"><tr><th>Группа</th><th>Курс</th><th>Предыдущие тестирования</th><th>Текущие тестирования</th><th>Планируемые тестирования</th></tr></thead>
@@ -64,9 +65,41 @@
       <button id="retry-history" class="button" type="button" hidden>Повторить загрузку истории</button>
       <div class="table-scroll"><table class="table"><thead><tr><th>Период</th><th>Изменение</th><th>Автор</th><th>Дата</th></tr></thead><tbody id="history-body"></tbody></table></div>
     </dialog>
+    <dialog id="discipline-selection-dialog" class="discipline-selection-dialog" aria-labelledby="discipline-selection-title">
+      <h2 id="discipline-selection-title">Выбор дисциплин для группы</h2>
+      <div class="discipline-selection-fields">
+        <label class="discipline-selection-field" for="discipline-selection-first">
+          <span>Дисциплина 1:</span>
+          <select id="discipline-selection-first" class="field__input">
+            <option value="">Не выбрано</option>
+            <option value="1">Линейная алгебра</option>
+            <option value="2">Базы данных</option>
+            <option value="3">Основы программирования</option>
+            <option value="4">Аналитика информационной безопасности</option>
+          </select>
+        </label>
+        <label class="discipline-selection-field" for="discipline-selection-second">
+          <span>Дисциплина 2:</span>
+          <select id="discipline-selection-second" class="field__input">
+            <option value="">Не выбрано</option>
+            <option value="1">Линейная алгебра</option>
+            <option value="2">Базы данных</option>
+            <option value="3">Основы программирования</option>
+            <option value="4">Аналитика информационной безопасности</option>
+          </select>
+        </label>
+      </div>
+      <p id="discipline-selection-error" class="discipline-selection-error" role="alert" hidden></p>
+      <div class="discipline-selection-actions">
+        <button id="discipline-selection-back" class="button discipline-selection-button discipline-selection-button--back" type="button">Вернуться</button>
+        <button id="discipline-selection-clear" class="button discipline-selection-button discipline-selection-button--clear" type="button">Очистить выбор</button>
+        <button id="discipline-selection-confirm" class="button discipline-selection-button discipline-selection-button--confirm" type="button">Подтвердить выбор</button>
+      </div>
+    </dialog>
     <script src="../js/layout.js"></script>
     <script src="/app-config.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/pages/groups.js"></script>
+    <script src="../js/pages/discipline-selection.js"></script>
   </body>
 </html>
