@@ -181,7 +181,15 @@ function renderTestingMatrix(groups) {
     history.textContent = "История";
     history.setAttribute("aria-label", `История рекомендаций группы ${group.name}`);
     history.addEventListener("click", () => openRecommendationHistory(group));
-    groupCell.append(document.createElement("br"), history);
+    const disciplineSelection = document.createElement("button");
+    disciplineSelection.type = "button";
+    disciplineSelection.className = "button discipline-selection-trigger";
+    disciplineSelection.dataset.action = "select-disciplines";
+    disciplineSelection.dataset.groupId = String(group.id);
+    disciplineSelection.dataset.groupName = group.name;
+    disciplineSelection.textContent = "Дисциплины";
+    disciplineSelection.setAttribute("aria-label", `Выбрать дисциплины для группы ${group.name}`);
+    groupCell.append(document.createElement("br"), history, document.createElement("br"), disciplineSelection);
     row.append(groupCell);
     const courseCell = document.createElement("td");
     const course = group.admission_year ? Number(year.split("/")[0]) - group.admission_year + 1 : null;
