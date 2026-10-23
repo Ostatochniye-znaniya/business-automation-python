@@ -49,7 +49,7 @@ function setup({ role = 'LPR', failure = false } = {}) {
     },
   };
   vm.createContext(context);
-  vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../frontend/js/pages/groups.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../legacy/frontend-static/js/pages/groups.js'), 'utf8'), context);
   return { get, context, calls, groups, setFailure: value => { fail = value; } };
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));

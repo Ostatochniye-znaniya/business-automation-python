@@ -28,7 +28,7 @@ function environment(page, apiGetAll, apiGet = async () => ({})) {
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
 function execute(env, file = 'pages/sections.js') {
-  vm.runInContext(fs.readFileSync(path.join(root, 'frontend/js', file), 'utf8'), env.context);
+  vm.runInContext(fs.readFileSync(path.join(root, 'legacy/frontend-static/js', file), 'utf8'), env.context);
 }
 const period = { id: 1, name: 'Весна', academic_year: '2025/2026', semester: 2,
   start_date: '2026-02-01', end_date: '2026-06-30', status: 'OPEN' };
@@ -122,6 +122,6 @@ test('sidebar links resolve to existing pages and date settings activate system 
   assert.match(sidebar, /href="\/pages\/options.html" aria-current="page"/);
   assert.match(sidebar, /Проверка<br>остаточных знаний/);
   for (const [, href] of sidebar.matchAll(/href="([^"]+)"/g)) {
-    assert.ok(fs.existsSync(path.join(root, 'frontend', href === '/' ? 'index.html' : href)));
+    assert.ok(fs.existsSync(path.join(root, 'legacy/frontend-static', href === '/' ? 'index.html' : href)));
   }
 });

@@ -69,7 +69,7 @@ def create_app() -> FastAPI:
     # Статика монтируется только по флагу: mount("/") перехватывает все пути,
     # добавленные после create_app(), и ломает регистрацию маршрутов в тестах.
     if settings.SERVE_FRONTEND:
-        frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+        frontend_dir = Path(__file__).resolve().parent.parent / "legacy" / "frontend-static"
         application.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
     return application
