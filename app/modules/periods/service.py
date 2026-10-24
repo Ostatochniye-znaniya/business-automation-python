@@ -55,8 +55,25 @@ class PeriodService:
 
         require_role(actor, MANAGERS)
         period = await self.get_by_id(period_id)
-        for key, value in data.model_dump().items():
+        for key, value in data.model_dump(exclude_unset=True).items():
             setattr(period, key, value)
+        from app.modules.reports.service import ReportService
+
+        await ReportService(self.session).refresh_period_completion(period)
         audit(self.session, actor, "period.update", period_id)
+        await self.session.commit()
+        return period
+
+    async def set_report_policy(self, period_id: int, required: bool, actor) -> TestingPeriod:
+        from app.core.permissions import MANAGERS, audit, require_role
+        from app.modules.reports.service import ReportService
+
+        require_role(actor, MANAGERS)
+        period = await self.session.get(TestingPeriod, period_id, with_for_update=True)
+        if period is None:
+            raise NotFoundError("Период не найден")
+        period.paper_reports_required = required
+        await ReportService(self.session).refresh_period_completion(period)
+        audit(self.session, actor, "period.report_policy", period_id)
         await self.session.commit()
         return period

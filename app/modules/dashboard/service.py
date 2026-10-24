@@ -46,7 +46,10 @@ class DashboardService:
                             disciplines.required
                             and disciplines.actual == disciplines.required
                             and reports.electronic_submitted == disciplines.required
-                            and reports.paper_submitted == disciplines.required
+                            and (
+                                not period.paper_reports_required
+                                or reports.paper_submitted == disciplines.required
+                            )
                         ),
                     )
                 )

@@ -8,7 +8,7 @@ from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, Va
 from app.core.permissions import MANAGERS, PLANNERS, audit, require_department, require_role
 from app.core.time import MOSCOW, utc_naive
 from app.modules.disciplines.models import Discipline
-from app.modules.groups.models import StudyGroup
+from app.modules.groups.models import StudyGroup, StudyProgram
 from app.modules.groups.recommendation_models import GroupRecommendation
 from app.modules.periods.service import PeriodService
 from app.modules.students.models import Student
@@ -33,10 +33,18 @@ class TestingWorkflow:
             query = query.where(KnowledgeTest.teacher_id == actor.id)
         elif actor.role not in MANAGERS:
             ids = await DepartmentService(self.session).subtree_ids(actor.department_id)
+            group_scope = StudyGroup.department_id.in_(ids) | (
+                StudyGroup.department_id.is_(None) & StudyProgram.faculty_id.in_(ids)
+            )
             query = (
                 query.join(StudyGroup, StudyGroup.id == KnowledgeTest.group_id)
                 .join(Discipline, Discipline.id == KnowledgeTest.discipline_id)
-                .where(StudyGroup.department_id.in_(ids) | Discipline.department_id.in_(ids))
+                .outerjoin(StudyProgram, StudyProgram.id == StudyGroup.study_program_id)
+                .where(
+                    group_scope
+                    if actor.role == UserRole.DEPARTMENT_HEAD
+                    else group_scope | Discipline.department_id.in_(ids)
+                )
             )
         return list(
             (
@@ -60,10 +68,18 @@ class TestingWorkflow:
             group = await self.session.get(StudyGroup, test.group_id)
             discipline = await self.session.get(Discipline, test.discipline_id)
             if actor.role not in MANAGERS:
-                try:
-                    await require_department(self.session, actor, group.department_id)
-                except ForbiddenError:
-                    await require_department(self.session, actor, discipline.department_id)
+                if actor.role == UserRole.DEPARTMENT_HEAD:
+                    from app.modules.departments.service import DepartmentService
+                    from app.modules.groups.service import GroupService
+
+                    ids = await DepartmentService(self.session).subtree_ids(actor.department_id)
+                    if not await GroupService(self.session).belongs_to_departments(group.id, ids):
+                        raise ForbiddenError("Данные относятся к другому факультету")
+                else:
+                    try:
+                        await require_department(self.session, actor, group.department_id)
+                    except ForbiddenError:
+                        await require_department(self.session, actor, discipline.department_id)
         if write:
             await PeriodService(self.session).require_editable(test.period_id)
         return test

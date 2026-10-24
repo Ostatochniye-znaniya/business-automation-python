@@ -76,6 +76,7 @@ class ReportOverviewService:
             )
         if paper_status:
             query = query.where(
+                TestingPeriod.paper_reports_required.is_(True),
                 func.coalesce(Report.paper_status, "MISSING") == paper_status,
             )
         records = (
@@ -104,7 +105,9 @@ class ReportOverviewService:
             total, participated = totals.get(group.id, 0), participants.get(test.id, 0)
             electronic = (report.electronic_status if report else None) or "MISSING"
             paper = (report.paper_status if report else None) or "MISSING"
-            complete = electronic == "APPROVED" and paper == "APPROVED"
+            complete = electronic == "APPROVED" and (
+                not period.paper_reports_required or paper == "APPROVED"
+            )
             rows.append(
                 ReportOverview(
                     knowledge_test_id=test.id,
@@ -123,9 +126,9 @@ class ReportOverviewService:
                     previous_teacher_name=report.previous_teacher_name if report else None,
                     electronic_status=electronic,
                     electronic_comment=report.electronic_comment if report else None,
-                    paper_status=paper,
+                    paper_status=paper if period.paper_reports_required else "NOT_REQUIRED",
                     paper_comment=report.paper_comment if report else None,
-                    paper_reports_required=True,
+                    paper_reports_required=period.paper_reports_required,
                     final_status="COMPLETE" if complete else "PENDING",
                     has_file=bool(report and report.electronic_file_key),
                     total_students=total,

@@ -39,6 +39,7 @@ class ExportService:
                     await StudentService(self.session).count_by_groups({test.group_id})
                 ).get(test.group_id, 0)
                 participated = sum(r.participation_status == "PASSED" for r in results)
+                period = await PeriodService(self.session).get_by_id(period_id)
                 rows.append(
                     [
                         context["group"],
@@ -51,7 +52,9 @@ class ExportService:
                         sum(r.participation_status == "ABSENT" for r in results),
                         sum(r.participation_status == "NOT_ADMITTED" for r in results),
                         report.electronic_status if report else "MISSING",
-                        report.paper_status if report else "MISSING",
+                        (report.paper_status if report else "MISSING")
+                        if period.paper_reports_required
+                        else "NOT_REQUIRED",
                         total_students,
                         round(100 * participated / total_students, 2) if total_students else 0,
                         total_students > 0 and 2 * participated >= total_students,

@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, String, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.enums import TestingPeriodStatus
@@ -18,3 +18,4 @@ class TestingPeriod(Base):
     status: Mapped[TestingPeriodStatus] = mapped_column(
         Enum(TestingPeriodStatus), default=TestingPeriodStatus.DRAFT
     )
+    paper_reports_required: Mapped[bool] = mapped_column(default=False, server_default=false())

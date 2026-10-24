@@ -12,6 +12,11 @@ class TestingPeriodBase(BaseModel):
     start_date: date
     end_date: date
     status: TestingPeriodStatus = TestingPeriodStatus.DRAFT
+    paper_reports_required: bool = False
+
+
+class ReportPolicyUpdate(BaseModel):
+    paper_reports_required: bool
 
 
 class TestingPeriodCreate(TestingPeriodBase):
