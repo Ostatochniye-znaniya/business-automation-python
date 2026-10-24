@@ -262,9 +262,52 @@ async def test_users_and_requests(client, workflow):
     assert workflow["users"][3].role == UserRole.TEACHER
 
 
+async def test_dean_reviews_only_own_faculty_reports(client, workflow):
+    from app.modules.reports.models import Report
+    from app.modules.testing.models import KnowledgeTest
+
+    identifier = await prepare_test(client, workflow)
+    created = await client.post(f"/api/report-workflow/testing/{identifier}")
+    report_id = created.json()["id"]
+    document = await client.get(f"/api/exports/report/{identifier}.docx")
+    assert (
+        await client.post(
+            f"/api/report-workflow/{report_id}/file",
+            files={"file": ("report.docx", document.content)},
+        )
+    ).status_code == 200
+    session = workflow["session"]
+    session.add(Department(id=3, name="Другой факультет", type=DepartmentType.FACULTY))
+    await session.flush()
+    session.add(StudyGroup(id=2, name="Чужая группа", department_id=3))
+    dean = User(id=5, full_name="Декан", role=UserRole.DEPARTMENT_HEAD, department_id=1)
+    session.add(dean)
+    await session.flush()
+    foreign_test = KnowledgeTest(period_id=1, group_id=2, discipline_id=1)
+    session.add(foreign_test)
+    await session.flush()
+    foreign_report = Report(knowledge_test_id=foreign_test.id, electronic_status="DRAFT")
+    session.add(foreign_report)
+    await session.commit()
+    workflow["actor"] = UserRead.model_validate(dean)
+    assert (
+        await client.put(
+            f"/api/report-workflow/{report_id}/review/electronic", json={"approved": True}
+        )
+    ).status_code == 200
+    assert (
+        await client.put(
+            f"/api/report-workflow/{foreign_report.id}/review/electronic", json={"approved": True}
+        )
+    ).status_code == 403
+    await session.refresh(foreign_report)
+    assert foreign_report.electronic_status == "DRAFT"
+
+
 async def test_orders_are_persisted_and_published_orders_immutable(client, workflow):
     payload = {
         "title": "О проведении проверки",
+        "number": "42-ОД",
         "year": "2026/2027",
         "semester": "Осень",
         "date": date.today().isoformat(),
@@ -274,11 +317,107 @@ async def test_orders_are_persisted_and_published_orders_immutable(client, workf
     order = await client.post("/api/orders", json=payload)
     assert order.status_code == 201, order.text
     identifier = order.json()["id"]
+    assert (await client.get(f"/api/orders/{identifier}/file")).status_code == 409
+    assert (
+        await client.put(f"/api/orders/{identifier}", json={**payload, "draft": False})
+    ).status_code == 422
+    payload["details"] = {
+        "bossControl": "Иванов Иван Иванович",
+        "bossMethod": "Петров Пётр Петрович",
+        **{
+            key: date.today().isoformat()
+            for key in [
+                "checkSummaryDate",
+                "surveySummaryDate",
+                "electronicReportDeadline",
+                "paperReportDeadline",
+                "testingStartDate",
+                "testingEndDate",
+                "surveyStartDate",
+                "surveyEndDate",
+                "preparationStartDate",
+                "preparationEndDate",
+                "resultsProcessingStartDate",
+            ]
+        },
+    }
     assert (
         await client.put(f"/api/orders/{identifier}", json={**payload, "draft": False})
     ).status_code == 200
     assert (await client.delete(f"/api/orders/{identifier}")).status_code == 409
+    document = await client.get(f"/api/orders/{identifier}/file")
+    assert document.status_code == 200, document.text
+    assert document.content.startswith(b"%PDF")
+    assert (await client.put(f"/api/orders/{identifier}", json=payload)).status_code == 409
     assert any(row["id"] == identifier for row in (await client.get("/api/orders")).json())
+
+
+async def test_order_date_validation_and_paper_policy(client, workflow):
+    from app.core.exceptions import ValidationError
+    from app.modules.orders.schemas import OrderCreate
+    from app.modules.orders.service import OrderService
+
+    period = await workflow["session"].get(Period, 1)
+    details = {
+        "bossControl": "Иванов",
+        "bossMethod": "Петров",
+        **{
+            key: date.today().isoformat()
+            for key in [
+                "checkSummaryDate",
+                "surveySummaryDate",
+                "electronicReportDeadline",
+                "testingStartDate",
+                "testingEndDate",
+                "surveyStartDate",
+                "surveyEndDate",
+                "preparationStartDate",
+                "preparationEndDate",
+                "resultsProcessingStartDate",
+            ]
+        },
+    }
+    data = OrderCreate(
+        title="Проверка",
+        number="43-ОД",
+        year=period.academic_year,
+        semester="Осень",
+        date=date.today(),
+        period_id=1,
+        draft=False,
+        details=details,
+    )
+    with pytest.raises(ValidationError, match="бумажных"):
+        OrderService.validate_publication(data, period)
+    period.paper_reports_required = False
+    OrderService.validate_publication(data, period)
+    data.details["testingEndDate"] = (date.today() - timedelta(days=1)).isoformat()
+    with pytest.raises(ValidationError, match="последовательность"):
+        OrderService.validate_publication(data, period)
+
+
+async def test_report_templates_before_results_and_scoped_download(client, workflow):
+    from docx import Document
+
+    identifier = await prepare_test(client, workflow)
+    from app.modules.testing.models import KnowledgeTest
+
+    test = await workflow["session"].get(KnowledgeTest, identifier)
+    test.status = "PLANNED"
+    await workflow["session"].commit()
+    document = await client.get(f"/api/exports/report/{identifier}.docx?template=true")
+    assert document.status_code == 200, document.text
+    parsed = Document(io.BytesIO(document.content))
+    assert len(parsed.tables) == 2
+    assert parsed.tables[0].rows[7].cells[1].text == "Студент"
+    assert parsed.tables[0].rows[7].cells[3].text == ""
+    assert (await client.get(f"/api/exports/report/{identifier}.docx")).status_code == 422
+    preview = await client.get(f"/api/exports/report/{identifier}.pdf?template=true")
+    assert preview.status_code == 200 and preview.content.startswith(b"%PDF")
+    workflow["actor"] = UserRead.model_validate(workflow["users"][3])
+    assert (
+        await client.get(f"/api/exports/report/{identifier}.docx?template=true")
+    ).status_code == 403
 
 
 async def test_department_cycles_and_references(client, workflow):

@@ -223,12 +223,14 @@ async def run(output: Path):
                     response = await pending.value
                     assert response.ok, (response.status, await response.text())
 
-                async def choose(label, option):
+                async def choose(label, option, endpoint="/reports/overview?", query_key=None):
                     await page.get_by_role("button", name=label, exact=True).click()
-                    query_key = "discipline_id=1" if label == "Дисциплина" else "department_id=2"
+                    query_key = query_key or (
+                        "discipline_id=1" if label == "Дисциплина" else "department_id=2"
+                    )
                     async with page.expect_response(
                         lambda response: (
-                            "/reports/overview?" in response.url
+                            endpoint in response.url
                             and query_key in response.url
                             and response.request.method == "GET"
                         )
@@ -365,6 +367,86 @@ async def run(output: Path):
                 async with page.expect_download() as pending:
                     await page.get_by_role("button", name="Скачать сводный отчёт CSV").click()
                 await (await pending.value).save_as(output / "summary.csv")
+                await page.goto(base + "/lpr/list")
+                await expect(
+                    page.get_by_text("Предыдущие тестирования", exact=True)
+                ).to_be_visible()
+                choice = page.get_by_label(
+                    "Рекомендовать группу 261-001: Осенний период", exact=True
+                )
+                await expect(choice).to_be_enabled()
+                await choice.uncheck()
+                await choose(
+                    "Факультет / институт",
+                    "Факультет информационных технологий",
+                    "/groups/testing-overview?",
+                    "faculty_id=1",
+                )
+                await expect(choice).not_to_be_checked()
+                await mutation(
+                    "/recommendations",
+                    lambda: page.get_by_role("button", name="Сохранить рекомендации").click(),
+                )
+                await expect(choice).to_be_enabled()
+                await expect(choice).not_to_be_checked()
+                await page.get_by_role("button", name="Выбрать видимые", exact=True).click()
+                await expect(choice).to_be_checked()
+                await mutation(
+                    "/recommendations",
+                    lambda: page.get_by_role("button", name="Сохранить рекомендации").click(),
+                )
+                await expect(choice).to_be_enabled()
+                await page.get_by_role("button", name="История", exact=True).first.click()
+                history = page.get_by_role("dialog")
+                await expect(history).to_contain_text("Рекомендация снята")
+                await expect(history).to_contain_text("Рекомендована")
+                await history.get_by_role("button", name="Закрыть", exact=True).click()
+                await page.screenshot(path=str(output / "recommendations.png"), full_page=True)
+                await page.goto(base + "/lpr/order")
+                await page.get_by_role(
+                    "button", name="Сформировать новый приказ", exact=True
+                ).click()
+                dialog = page.get_by_role("dialog")
+                await dialog.get_by_label("Номер приказа", exact=True).fill("42-ОД")
+                await mutation(
+                    "/orders",
+                    lambda: dialog.get_by_role(
+                        "button", name="Сохранить черновик", exact=True
+                    ).click(),
+                )
+                await page.get_by_role("button", name="Подробнее", exact=True).click()
+                dialog = page.get_by_role("dialog")
+                await dialog.get_by_label(
+                    "Начальник отдела контроля образовательного процесса", exact=True
+                ).fill("Иванов Иван Иванович")
+                await dialog.get_by_label(
+                    "Начальник центра по учебно-методической работе", exact=True
+                ).fill("Петров Пётр Петрович")
+                for label in [
+                    "Дата приказа",
+                    "Начало подготовительного этапа",
+                    "Окончание подготовительного этапа",
+                    "Начало тестирования",
+                    "Окончание тестирования",
+                    "Начало обработки результатов",
+                    "Сводный отчёт по результатам проверки до",
+                    "Начало анкетирования",
+                    "Окончание анкетирования",
+                    "Сводный отчёт по анкетированию до",
+                    "Сдача электронных отчётов до",
+                ]:
+                    await dialog.get_by_label(label, exact=True).fill(date.today().isoformat())
+                page.once("dialog", lambda modal: modal.accept())
+                await mutation(
+                    "/orders/",
+                    lambda: dialog.get_by_role(
+                        "button", name="Сформировать приказ", exact=True
+                    ).click(),
+                )
+                async with page.expect_download() as pending:
+                    await page.get_by_role("button", name="Скачать PDF", exact=True).click()
+                await (await pending.value).save_as(output / "order.pdf")
+                await page.screenshot(path=str(output / "orders.png"), full_page=True)
                 for route in [
                     "/lpr/statistics",
                     "/lpr/order",
@@ -404,7 +486,7 @@ async def run(output: Path):
                 assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
                 assert not errors, errors
                 print(
-                    "Next.js workflow passed: role pages, 8px gaps, filters, dean scope, optional paper, 50% participation, results, upload, DOCX/CSV; no JS errors."
+                    "Next.js workflow passed: recommendations matrix/history/bulk selection, orders/drafts/PDF, role pages, 8px gaps, dean scope, optional paper, participation, results, upload, DOCX/CSV; no JS errors."
                 )
                 await browser.close()
         except Exception as exc:

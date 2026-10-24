@@ -14,12 +14,21 @@ Actor = Annotated[UserRead, Depends(get_current_user)]
 
 
 @router.get("/report/{test_id}.docx")
-async def report(test_id: int, session: Session, actor: Actor):
-    content = await ExportService(session).report(test_id, actor)
+async def report(test_id: int, session: Session, actor: Actor, template: bool = False):
+    content = await ExportService(session).report(test_id, actor, template=template)
     return Response(
         content,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="report-{test_id}.docx"'},
+    )
+
+
+@router.get("/report/{test_id}.pdf")
+async def report_preview(test_id: int, session: Session, actor: Actor, template: bool = False):
+    return Response(
+        await ExportService(session).report(test_id, actor, template=template, pdf=True),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="report-{test_id}.pdf"'},
     )
 
 

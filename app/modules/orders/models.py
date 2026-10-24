@@ -9,6 +9,7 @@ class Order(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     period_id: Mapped[int | None] = mapped_column(ForeignKey("testing_periods.id"))
     title: Mapped[str] = mapped_column(String(500))
+    number: Mapped[str | None] = mapped_column(String(50))
     year: Mapped[str] = mapped_column(String(9))
     semester: Mapped[str] = mapped_column(String(16))
     date: Mapped[str] = mapped_column(String(10))

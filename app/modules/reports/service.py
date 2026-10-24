@@ -158,11 +158,9 @@ class ReportService:
     async def review(
         self, report_id: int, version: str, approved: bool, comment: str | None, actor: UserRead
     ) -> Report:
-        require_role(actor, MANAGERS)
+        require_role(actor, MANAGERS | {UserRole.DEPARTMENT_HEAD})
         report = await self.get_by_id(report_id)
-        test = await TestingWorkflow(self.session).get_test(
-            report.knowledge_test_id, actor, write=True
-        )
+        test = await TestingWorkflow(self.session).get_test(report.knowledge_test_id, actor, write=True)
         from app.modules.periods.service import PeriodService
 
         period = await PeriodService(self.session).get_by_id(test.period_id)

@@ -23,6 +23,7 @@ import ResultsEditor from "./ResultsEditor";
 export default function ReportsPage() {
   const { userData } = useUser(),
     manager = isManager(userData),
+    reviewer = manager || userData?.role === "DEPARTMENT_HEAD",
     teacher = userData?.role === "TEACHER";
   const periods = usePeriod(),
     units = useList<Department>("/departments"),
@@ -390,20 +391,58 @@ export default function ReportsPage() {
                   }
                 />
               )}
+              <>
+                <Button
+                  title="Скачать бланк DOCX"
+                  color="btn-blue"
+                  onClick={() =>
+                    action.run(() =>
+                      download(
+                        `/exports/report/${selected.knowledge_test_id}.docx?template=true`,
+                        "report-template.docx",
+                      ),
+                    )
+                  }
+                />
+                <Button
+                  title="Бланк PDF"
+                  color="btn-blue"
+                  onClick={() =>
+                    action.run(() =>
+                      download(
+                        `/exports/report/${selected.knowledge_test_id}.pdf?template=true`,
+                        "report-template.pdf",
+                      ),
+                    )
+                  }
+                />
+                <Button
+                  title="Отчёт PDF"
+                  color="btn-blue"
+                  onClick={() =>
+                    action.run(() =>
+                      download(
+                        `/exports/report/${selected.knowledge_test_id}.pdf`,
+                        "report.pdf",
+                      ),
+                    )
+                  }
+                />
+                <Button
+                  title="Сформировать DOCX"
+                  color="btn-blue"
+                  onClick={() =>
+                    action.run(() =>
+                      download(
+                        `/exports/report/${selected.knowledge_test_id}.docx`,
+                        "report.docx",
+                      ),
+                    )
+                  }
+                />
+              </>
               {teacher && (
                 <>
-                  <Button
-                    title="Сформировать DOCX"
-                    color="btn-blue"
-                    onClick={() =>
-                      action.run(() =>
-                        download(
-                          `/exports/report/${selected.knowledge_test_id}.docx`,
-                          "report.docx",
-                        ),
-                      )
-                    }
-                  />
                   <Button
                     title="Создать карточку"
                     color="btn-blue"
@@ -511,7 +550,7 @@ export default function ReportsPage() {
                 </>
               )}
             </div>
-            {manager && selected.report_id && (
+            {reviewer && selected.report_id && (
               <div className="form-grid">
                 <label>
                   Версия

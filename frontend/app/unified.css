@@ -1,5 +1,6 @@
 /* One shared gap for every page and both sidebar states. */
 :root {
+  --recommendation-column-width: 180px;
   --shell-gap: 8px;
 }
 * {
@@ -211,4 +212,33 @@ input[type="checkbox"] {
   .form-grid > * {
     max-width: 100%;
   }
+}
+
+.recommendation-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.recommendation-period {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  min-width: var(--recommendation-column-width);
+  padding: 10px;
+  border: 1px solid var(--border-color, #a0a0a0);
+  border-radius: 8px;
+}
+.recommendation-period label {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.recommendation-period label[data-dirty="true"] {
+  font-weight: 700;
+}
+.order-cards {
+  display: grid;
+  gap: 12px;
 }

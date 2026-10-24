@@ -102,16 +102,30 @@ class ExportService:
         from app.modules.reports.service import ReportService
 
         reports = await ReportService(self.session).get_by_test(test.id)
-        faculty_id = (
-            department.parent_id
-            if department and department.parent_id
-            else (department.id if department else None)
+        # The report belongs to the group's faculty, even for a cross-faculty discipline.
+        faculty = (
+            await DepartmentService(self.session).get_by_id(
+                group.department_id or program.faculty_id
+            )
+            if group.department_id or program
+            else None
         )
+        visited = set()
+        while faculty and faculty.type not in {"FACULTY", "INSTITUTE"}:
+            if not faculty.parent_id or faculty.id in visited:
+                faculty = None
+                break
+            visited.add(faculty.id)
+            faculty = await DepartmentService(self.session).get_by_id(faculty.parent_id)
+        faculty_id = faculty.id if faculty else None
         return {
             "group": group.name,
             "discipline": discipline.name,
             "academic_year": period.academic_year,
             "program": f"{program.code or ''} {program.name}".strip() if program else None,
+            "program_code": program.code or "" if program else "",
+            "program_name": program.name if program else "",
+            "faculty": faculty.name if faculty else "",
             "teacher": teacher.full_name if teacher else "",
             "department": department.name if department else "",
             "previous_teacher": reports[0].previous_teacher_name if reports else None,
@@ -123,9 +137,9 @@ class ExportService:
             ),
         }
 
-    async def report(self, test_id, actor):
+    async def report(self, test_id, actor, *, template=False, pdf=False):
         test = await TestingWorkflow(self.session).get_test(test_id, actor)
-        if test.status != KnowledgeTestStatus.COMPLETED:
+        if not template and test.status != KnowledgeTestStatus.COMPLETED:
             raise ValidationError("Печатный отчёт доступен после заполнения результатов")
         context = await self.context(test)
         results = await ResultService(self.session).get_by_test(test_id, limit=100000)
@@ -141,11 +155,15 @@ class ExportService:
                 }
             )
         rows.sort(key=lambda row: row["student"])
+        if template:
+            students = await StudentService(self.session).list_students(test.group_id, limit=100000)
+            rows = [{"student": student.full_name} for student in students]
+            rows.sort(key=lambda row: row["student"])
         from starlette.concurrency import run_in_threadpool
 
-        from app.modules.reports.documents import report_docx
+        from app.modules.reports.documents import report_docx, report_pdf
 
-        return await run_in_threadpool(report_docx, context, rows)
+        return await run_in_threadpool(report_pdf if pdf else report_docx, context, rows, template)
 
     async def schedule(self, period_id, actor, department_id=None, signatory=""):
         from app.core.enums import UserRole
