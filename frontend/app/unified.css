@@ -1,0 +1,214 @@
+/* One shared gap for every page and both sidebar states. */
+:root {
+  --shell-gap: 8px;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: var(--secondary-font-c);
+  font-family: "Montserrat", Arial, sans-serif;
+  background: var(--background-c);
+}
+.navbar-container {
+  top: var(--shell-gap);
+  bottom: var(--shell-gap);
+  left: var(--shell-gap);
+  min-height: 0;
+  height: calc(100dvh - 2 * var(--shell-gap));
+  border-radius: 16px;
+  overflow-y: auto;
+}
+.main-container {
+  margin: var(--shell-gap) var(--shell-gap) var(--shell-gap)
+    calc(var(--navbar-width) + 2 * var(--shell-gap));
+  padding: 0;
+  min-height: calc(100dvh - 2 * var(--shell-gap));
+  border-radius: 16px;
+  overflow: hidden;
+}
+.page-header {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--background-main-element-c);
+  border-bottom: var(--shell-gap) solid var(--secondary-divider-bg-c);
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.page-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.page-body h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.filter-grid,
+.form-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+}
+.form-grid label,
+.native-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  flex: 1;
+  font-size: 14px;
+}
+.form-grid input,
+.form-grid select,
+.form-grid textarea,
+.native-field select,
+.native-field input {
+  font: inherit;
+  color: var(--secondary-font-c);
+  background: var(--background-inner-main-element-c);
+  border: 1px solid var(--secondary-border-c);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 0;
+  width: 100%;
+}
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-blue-c);
+}
+.policy-setting {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  background: var(--background-inner-main-element-c);
+  border-radius: 12px;
+}
+.policy-setting label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+}
+.notice {
+  padding: 12px 16px;
+  background: var(--background-inner-main-element-c);
+  border-radius: 10px;
+  font-size: 14px;
+}
+.notice.error {
+  border-left: 3px solid var(--accent-red-c);
+}
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.table-container {
+  width: 100%;
+}
+.table-container th {
+  white-space: normal;
+}
+.login-card {
+  width: min(520px, calc(100% - 32px));
+  margin: 10vh auto;
+  background: var(--background-main-element-c);
+  border-radius: 20px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.login-card h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.session-loading {
+  padding: 32px;
+}
+.field-help {
+  font-size: 12px;
+  color: var(--secondary-lock-font-c);
+}
+.dropdown-header {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+.modal input:not([type="checkbox"]),
+.modal select,
+.modal textarea {
+  font: inherit;
+  color: var(--secondary-font-c);
+  background: var(--background-inner-main-element-c);
+  border: 1px solid var(--secondary-border-c);
+  border-radius: 8px;
+  padding: 8px;
+  max-width: 100%;
+}
+.document-statistics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.bool-value {
+  font-weight: 600;
+}
+@media (max-width: 768px) {
+  :root,
+  :root.dark {
+    --navbar-width: 68px;
+    --navbar-padding-x: 12px;
+  }
+  .navbar-text-container,
+  .navbar-path,
+  .navbar-theme-label,
+  .navbar-title-logo {
+    display: none;
+  }
+  .navbar-icon-wrap {
+    display: flex;
+  }
+  .navbar-avatar,
+  .navbar-avatar img {
+    width: 40px;
+    height: 40px;
+  }
+  .navbar-logo-link {
+    max-width: 44px;
+    overflow: hidden;
+  }
+  .main-container {
+    margin-left: calc(var(--navbar-width) + 2 * var(--shell-gap));
+    margin-right: var(--shell-gap);
+    margin-top: var(--shell-gap);
+  }
+  .page-header,
+  .page-body {
+    padding: 16px;
+  }
+  .filter-grid > *,
+  .form-grid > * {
+    max-width: 100%;
+  }
+}

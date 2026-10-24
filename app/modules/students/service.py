@@ -12,6 +12,19 @@ class StudentService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def count_by_groups(self, group_ids: set[int]) -> dict[int, int]:
+        from sqlalchemy import func
+
+        return dict(
+            (
+                await self.session.execute(
+                    select(Student.group_id, func.count(Student.id))
+                    .where(Student.group_id.in_(group_ids))
+                    .group_by(Student.group_id)
+                )
+            ).all()
+        )
+
     async def get_by_id(self, student_id: int) -> Student:
         student = await self.session.get(Student, student_id)
         if student is None:

@@ -50,7 +50,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Frontend tests
+      - name: Legacy frontend regression tests
         run: node --test tests/frontend/*.test.cjs
 
   mysql:
@@ -97,7 +97,20 @@ jobs:
       - run: pip install -e '.[dev,browser]'
       - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
       - run: python -m playwright install --with-deps chromium
-      - run: python tests/browser/check_workflow.py --output .qa/browser
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.25.0'
+          package_json_file: frontend/package.json
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend exec eslint . --max-warnings=0
+      - run: pnpm --dir frontend exec tsc --noEmit
+      - run: pnpm --dir frontend build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: python tests/browser/check_frontend.py --output .qa/browser
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -113,3 +126,5 @@ jobs:
 
       - name: Build image
         run: docker build -t ba-preview-check .
+      - name: Build frontend image
+        run: docker build -t knowledge-frontend-check ./frontend

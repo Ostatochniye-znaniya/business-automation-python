@@ -37,10 +37,12 @@ async def seed_demo_data(session: AsyncSession) -> bool:
             already_initialized = await session.scalar(marker) is not None
             if already_initialized:
                 await _seed_demo_recommendations(session)
+                await _ensure_demo_heads(session)
                 logger.info("Demo data already initialized")
                 return False
             await _insert_demo_data(session)
             await _seed_demo_recommendations(session)
+            await _ensure_demo_heads(session)
     except IntegrityError:
         # Another worker may have completed the same seed while we were starting.
         if already_initialized or await session.scalar(marker) is None:
@@ -48,6 +50,35 @@ async def seed_demo_data(session: AsyncSession) -> bool:
         return False
     logger.info("Demo data initialized")
     return True
+
+
+async def _ensure_demo_heads(session: AsyncSession) -> None:
+    """Add demo faculty roles without changing existing employees or their access."""
+    faculties = (
+        await session.scalars(
+            select(Department)
+            .where(
+                Department.name.like("Демо:%"),
+                Department.type.in_([DepartmentType.FACULTY, DepartmentType.INSTITUTE]),
+            )
+            .order_by(Department.id)
+        )
+    ).all()
+    for index, faculty in enumerate(faculties):
+        for role, label, marker in [
+            (UserRole.DEPARTMENT_HEAD, "Декан", "dean"),
+            (UserRole.DEPARTMENT_RESPONSIBLE, "Ответственный факультета", "responsible"),
+        ]:
+            external_id = f"demo:{marker}:{index}"
+            if await session.scalar(select(User.id).where(User.external_id == external_id)) is None:
+                session.add(
+                    User(
+                        external_id=external_id,
+                        full_name=f"Демо {label} — {faculty.short_name or faculty.name}",
+                        role=role,
+                        department_id=faculty.id,
+                    )
+                )
 
 
 async def _insert_demo_data(session: AsyncSession) -> None:
@@ -156,6 +187,7 @@ async def _insert_demo_data(session: AsyncSession) -> None:
                     if part == 1
                     else date(start_year + 1, 8, 31),
                     status=status,
+                    paper_reports_required=True,
                 )
             )
     session.add_all([*programs, *disciplines, *periods])

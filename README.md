@@ -2,7 +2,13 @@
 
 Приложение для планирования проверок остаточных знаний, заполнения результатов
 студентов, формирования графиков и проверки отчётности. Python 3.12+, FastAPI,
-Pydantic 2, async SQLAlchemy 2, MySQL 8.4. Frontend — HTML, CSS и JavaScript.
+Pydantic 2, async SQLAlchemy 2, MySQL 8.4. Frontend — Next.js, React и TypeScript.
+
+Интерфейс основан на ветке [develop Front-end-](https://github.com/Ostatochniye-znaniya/Front-end-/tree/develop)
+(исходный commit `89086c3d6e743c7075ebbf718eeaeeb96366eedd`). Используются её компоненты,
+стили, оформление и навигация по ролям. Демонстрационные таблицы и адреса C# API
+заменены подключением к Python API. Старый статический интерфейс сохранён в
+`legacy/frontend-static` и не входит в основную навигацию.
 
 ## Запуск через Docker
 
@@ -21,8 +27,9 @@ backend. База и файлы отчётов хранятся в отдель�
 для обычного обновления.
 
 - Главная: http://localhost:8000/
-- Рабочие процессы: http://localhost:8000/pages/workbench.html
-- Локальный вход: http://localhost:8000/pages/login.html
+- Локальный вход: http://localhost:8000/csh/login
+- Отчёты ЛПР: http://localhost:8000/csh/lpr/report
+- Документы декана: http://localhost:8000/csh/dof/documents
 - Swagger: http://localhost:8000/docs
 - OpenAPI: http://localhost:8000/openapi.json
 - Health: http://localhost:8000/health
@@ -50,8 +57,19 @@ docker compose up -d db
 
 ```powershell
 .venv\Scripts\alembic upgrade head
-.venv\Scripts\python -m uvicorn app.main:app --reload
+.venv\Scripts\python -m uvicorn app.main:app --reload --port 8001
 ```
+
+Frontend запускается в другом терминале (Node.js 22+, pnpm 11):
+
+```powershell
+pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend dev
+```
+
+Откройте http://localhost:3000/csh/login. Запросы `/csh/api` проксируются к
+`http://127.0.0.1:8001/api`; другой адрес задаётся через `BACKEND_URL` перед запуском/сборкой Next.js.
+В Docker frontend доступен на порту 8000, backend — на 8001, MySQL — на 3306.
 
 Для локальной генерации PDF нужен Unicode-шрифт: Arial на Windows или пакет
 `fonts-dejavu-core` на Linux. Dockerfile устанавливает DejaVu Sans.
@@ -80,14 +98,23 @@ docker compose up -d db
    предыдущего семестра и скачивает DOCX.
 8. PDF/DOCX загружается на проверку ЛПР. Отклонение требует замечания; после
    исправления файл загружается повторно. Принятый отчёт перед изменением отзывается.
-9. ЛПР отдельно принимает бумажную версию. «Всё сдано» устанавливается только после
-   принятия обеих версий. Печать и физическая передача подписанного отчёта выполняются вне системы.
+9. ЛПР включает или отключает приём бумажных отчётов для выбранного семестра.
+   Электронная версия обязательна всегда. При отключённой бумажной версии
+   достаточно принятия электронной; при включённой требуются обе. Печать и
+   физическая передача подписанного отчёта выполняются вне системы.
 10. ЛПР скачивает сводный CSV и закрывает период. Запись в закрытом периоде запрещена;
     для исправлений ЛПР может переоткрыть его с подходящими сроками доступа.
 
 Приказы и черновики сохраняются в MySQL. Опубликованный приказ нельзя редактировать
 или удалять. Статистика главной страницы рассчитывается через сервисы модулей.
 Описание формул и соответствие пунктам ТЗ: [docs/requirements.md](docs/requirements.md).
+
+В отчётах доступны фильтры по семестру, факультету, кафедре, дисциплине и статусам.
+ЛПР видит все факультеты, декан — только группы своего факультета; ограничение
+действует в API, включая прямые запросы и скачивание. Показатель
+`at_least_half_participated` вычисляется как `total_students > 0 and participated_students * 2 >= total_students`.
+Учитывается статус PASSED, а не величина оценки. Отсутствующие и недопущенные
+остаются в знаменателе. В пустой группе результат false.
 
 ## Импорт сотрудников
 
@@ -145,6 +172,8 @@ Router → Service → SQLAlchemy / AsyncSession → MySQL.
 
 Не используйте `create_all` на рабочей базе. Миграция 0005 добавляет административные
 таблицы и поля workflow без удаления существующих frontend, студентов и результатов.
+Миграция 0006 добавляет настройку бумажных отчётов по семестру и пересчитывает
+итог существующих отчётов. Решения по бумажным версиям сохраняются при отключении приёма.
 Перед обновлением рабочей базы сделайте её резервную копию.
 
 ## Проверки
@@ -154,6 +183,9 @@ Router → Service → SQLAlchemy / AsyncSession → MySQL.
 .venv\Scripts\ruff check .
 .venv\Scripts\ruff format --check .
 node --test tests/frontend/*.test.cjs
+pnpm --dir frontend exec eslint . --max-warnings=0
+pnpm --dir frontend exec tsc --noEmit
+pnpm --dir frontend build
 ```
 
 Backend-тесты используют временную SQLite с проверкой внешних ключей. Для проверки
@@ -172,11 +204,15 @@ Production workflow использует серверный `.env` и проек
 
 ```powershell
 .venv\Scripts\python -m pip install -e ".[browser]"
-.venv\Scripts\python tests/browser/check_workflow.py --output .qa/browser
+pnpm --dir frontend build
+.venv\Scripts\python tests/browser/check_frontend.py --output .qa/browser
 ```
 
 На Windows используется установленный Microsoft Edge. Для Chromium на Linux:
 `python -m playwright install chromium`. Тестовые данные не попадают в рабочую базу.
+Для теста должен быть свободен порт 8001; он запускает временные FastAPI и Next.js.
+Тест проверяет роли, фильтры, порог 50%, бумажную политику и одинаковые зазоры 8 px.
+Node-тесты в `tests/frontend` сохраняют проверки прежнего статического интерфейса.
 
 API-операции и их соответствие ТЗ приведены в [docs/requirements.md](docs/requirements.md).
 Секреты и `.env` не добавляются в Git; документы отчётов находятся в `storage/`,

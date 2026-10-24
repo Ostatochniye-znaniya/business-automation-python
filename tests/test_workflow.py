@@ -43,6 +43,7 @@ async def workflow(db_session, application, tmp_path, monkeypatch):
             start_date=today - timedelta(days=10),
             end_date=today + timedelta(days=20),
             status=PeriodStatus.OPEN,
+            paper_reports_required=True,
         )
     )
     db_session.add_all([Discipline(id=i, name=f"Дисциплина {i}", department_id=2) for i in (1, 2)])
@@ -390,3 +391,150 @@ async def test_catalog_creation_references_and_role_scope(client, workflow):
         await client.post("/api/catalog/programs", json={"name": "Запрещено", "faculty_id": 1})
     ).status_code == 403
     assert (await client.get("/api/students")).status_code == 403
+
+
+async def test_report_participation_threshold_uses_the_whole_roster(client, workflow):
+    identifier = await prepare_test(client, workflow)
+    session = workflow["session"]
+    session.add_all([Student(id=i, full_name=f"Студент {i}", group_id=1) for i in (2, 3, 4)])
+    await session.commit()
+    row = next(
+        row
+        for row in (await client.get("/api/reports/overview?period_id=1")).json()
+        if row["knowledge_test_id"] == identifier
+    )
+    assert (
+        row["total_students"],
+        row["participated_students"],
+        row["at_least_half_participated"],
+    ) == (4, 1, False)
+    assert row["participation_percentage"] == 25
+    response = await client.put(
+        "/api/results",
+        json={
+            "knowledge_test_id": identifier,
+            "student_id": 2,
+            "testing_result": 0,
+            "participation_status": "PASSED",
+        },
+    )
+    assert response.status_code == 200, response.text
+    for student_id, status in [(3, "ABSENT"), (4, "NOT_ADMITTED")]:
+        assert (
+            await client.put(
+                "/api/results",
+                json={
+                    "knowledge_test_id": identifier,
+                    "student_id": student_id,
+                    "participation_status": status,
+                },
+            )
+        ).status_code == 200
+    row = next(
+        row
+        for row in (await client.get("/api/reports/overview?period_id=1")).json()
+        if row["knowledge_test_id"] == identifier
+    )
+    assert row["at_least_half_participated"] is True
+    assert row["participation_percentage"] == 50
+
+
+async def test_report_participation_for_empty_group_is_false(client, workflow):
+    from sqlalchemy import delete
+
+    await workflow["session"].execute(delete(Student))
+    await workflow["session"].commit()
+    assert (
+        await client.put(
+            "/api/workflow/participation",
+            json={"group_id": 1, "period_id": 1, "participates": True, "discipline_ids": [1, 2]},
+        )
+    ).status_code == 200
+    rows = (await client.get("/api/reports/overview")).json()
+    assert len(rows) == 2
+    assert all(
+        row["total_students"] == 0 and row["at_least_half_participated"] is False for row in rows
+    )
+
+
+async def test_paper_policy_recalculates_existing_reports_and_protects_writes(client, workflow):
+    identifier = await prepare_test(client, workflow)
+    report = (await client.post(f"/api/report-workflow/testing/{identifier}")).json()
+    document = await client.get(f"/api/exports/report/{identifier}.docx")
+    assert (
+        await client.post(
+            f"/api/report-workflow/{report['id']}/file",
+            files={"file": ("report.docx", document.content)},
+        )
+    ).status_code == 200
+    workflow["actor"] = UserRead.model_validate(workflow["users"][0])
+    path = f"/api/report-workflow/{report['id']}/review/"
+    assert (await client.put(path + "electronic", json={"approved": True})).json()[
+        "final_status"
+    ] == "PENDING"
+    assert (
+        await client.patch("/api/periods/1/report-policy", json={"paper_reports_required": False})
+    ).status_code == 200
+    assert (await client.get(f"/api/reports/{report['id']}")).json()["final_status"] == "COMPLETE"
+    row = (await client.get("/api/reports/overview")).json()[0]
+    assert row["paper_status"] == "NOT_REQUIRED"
+    assert (await client.put(path + "paper", json={"approved": True})).status_code == 409
+    assert (
+        await client.patch("/api/periods/1/report-policy", json={"paper_reports_required": True})
+    ).status_code == 200
+    assert (await client.get(f"/api/reports/{report['id']}")).json()["final_status"] == "PENDING"
+    assert (await client.put(path + "paper", json={"approved": True})).json()[
+        "final_status"
+    ] == "COMPLETE"
+    workflow["actor"] = UserRead.model_validate(workflow["users"][2])
+    assert (
+        await client.patch("/api/periods/1/report-policy", json={"paper_reports_required": False})
+    ).status_code == 403
+
+
+async def test_reports_faculty_scope_and_department_discipline_filters(client, workflow):
+    from app.modules.testing.models import KnowledgeTest
+
+    identifier = await prepare_test(client, workflow)
+    session = workflow["session"]
+    session.add(Department(id=3, name="Другой факультет", type=DepartmentType.FACULTY))
+    await session.flush()
+    session.add(StudyGroup(id=2, name="Чужая группа", department_id=3))
+    dean = User(id=5, full_name="Декан", role=UserRole.DEPARTMENT_HEAD, department_id=1)
+    session.add(dean)
+    await session.flush()
+    foreign = KnowledgeTest(period_id=1, group_id=2, discipline_id=1)
+    session.add(foreign)
+    await session.commit()
+    workflow["actor"] = UserRead.model_validate(workflow["users"][0])
+    rows = (await client.get("/api/reports/overview?period_id=1")).json()
+    assert len(rows) == 3
+    assert (
+        len((await client.get("/api/reports/overview?department_id=2&discipline_id=1")).json()) == 2
+    )
+    assert len((await client.get("/api/reports/overview?faculty_id=3")).json()) == 1
+    workflow["actor"] = UserRead.model_validate(dean)
+    rows = (await client.get("/api/reports/overview?period_id=1")).json()
+    assert len(rows) == 2 and all(row["faculty_id"] == 1 for row in rows)
+    assert (await client.get("/api/reports/overview?faculty_id=3")).json() == []
+    assert (await client.get(f"/api/testing/{foreign.id}")).status_code == 403
+    assert (await client.get(f"/api/testing/{identifier}")).status_code == 200
+
+
+async def test_dean_can_read_group_linked_to_faculty_only_via_program(client, workflow):
+    from app.modules.groups.models import StudyProgram
+    from app.modules.testing.models import KnowledgeTest
+
+    session = workflow["session"]
+    session.add(StudyProgram(id=1, name="Направление", faculty_id=1))
+    await session.flush()
+    session.add(StudyGroup(id=2, name="Группа направления", study_program_id=1))
+    dean = User(id=5, full_name="Декан", role=UserRole.DEPARTMENT_HEAD, department_id=1)
+    session.add(dean)
+    await session.flush()
+    test = KnowledgeTest(period_id=1, group_id=2, discipline_id=1)
+    session.add(test)
+    await session.commit()
+    workflow["actor"] = UserRead.model_validate(dean)
+    assert (await client.get(f"/api/testing/{test.id}")).status_code == 200
+    assert len((await client.get("/api/reports/overview")).json()) == 1

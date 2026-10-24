@@ -160,7 +160,14 @@ class ReportService:
     ) -> Report:
         require_role(actor, MANAGERS)
         report = await self.get_by_id(report_id)
-        await TestingWorkflow(self.session).get_test(report.knowledge_test_id, actor, write=True)
+        test = await TestingWorkflow(self.session).get_test(
+            report.knowledge_test_id, actor, write=True
+        )
+        from app.modules.periods.service import PeriodService
+
+        period = await PeriodService(self.session).get_by_id(test.period_id)
+        if version == "paper" and not period.paper_reports_required:
+            raise ConflictError("Приём бумажных отчётов в этом семестре отключён ЛПР")
         if not approved and not (comment or "").strip():
             raise ValidationError("Укажите замечание при отклонении отчёта")
         if version == "electronic" and not report.electronic_file_key:
@@ -175,12 +182,34 @@ class ReportService:
             report.paper_status = "MISSING"
         report.final_status = (
             "COMPLETE"
-            if (report.electronic_status == "APPROVED" and report.paper_status == "APPROVED")
+            if (
+                report.electronic_status == "APPROVED"
+                and (not period.paper_reports_required or report.paper_status == "APPROVED")
+            )
             else "PENDING"
         )
         audit(self.session, actor, f"report.review.{version}", report.id)
         await self.session.commit()
         return report
+
+    async def refresh_period_completion(self, period) -> None:
+        """Recalculate completion without discarding earlier paper review decisions."""
+        from app.modules.testing.models import KnowledgeTest
+
+        reports = (
+            await self.session.scalars(
+                select(Report).join(KnowledgeTest).where(KnowledgeTest.period_id == period.id)
+            )
+        ).all()
+        for report in reports:
+            report.final_status = (
+                "COMPLETE"
+                if (
+                    report.electronic_status == "APPROVED"
+                    and (not period.paper_reports_required or report.paper_status == "APPROVED")
+                )
+                else "PENDING"
+            )
 
     async def approve_electronic(self, report_id: int, actor: UserRead) -> Report:
         return await self.review(report_id, "electronic", True, None, actor)

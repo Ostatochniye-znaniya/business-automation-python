@@ -48,6 +48,14 @@ class GroupService:
             raise NotFoundError("Направление подготовки не найдено")
         return program
 
+    async def belongs_to_departments(self, group_id: int, department_ids: set[int]) -> bool:
+        group = await self.get_by_id(group_id)
+        if group.department_id is not None:
+            return group.department_id in department_ids
+        if group.study_program_id is None:
+            return False
+        return (await self.get_program(group.study_program_id)).faculty_id in department_ids
+
     async def save_program(
         self, data: StudyProgramCreate, actor: UserRead, program_id: int | None = None
     ) -> StudyProgram:
