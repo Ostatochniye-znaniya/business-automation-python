@@ -127,12 +127,7 @@ export default function ReportsPage() {
           className="bool-value"
           title={`${row.participated_students} из ${row.total_students} студентов (${row.participation_percentage}%)`}
         >
-          {String(row.at_least_half_participated)}
-          <br />
-          <small>
-            {row.participated_students} / {row.total_students} ·{" "}
-            {row.participation_percentage}%
-          </small>
+          {row.at_least_half_participated ? "Да" : "Нет"}
         </span>
       ),
     },
@@ -303,8 +298,8 @@ export default function ReportsPage() {
       )}
       <p className="field-help">
         Электронный отчёт обязателен всегда. Участие: число студентов со
-        статусом «Прошёл тестирование» / полный состав группы; true при доле ≥
-        50%. Для пустой группы — false.
+        статусом «Прошёл тестирование» / полный состав группы; «Да» при доле ≥
+        50%. Для пустой группы — «Нет».
       </p>
       {rows.loading ? (
         <p role="status">Загрузка отчётов…</p>
@@ -372,7 +367,7 @@ export default function ReportsPage() {
             <p>
               Участвовали {selected.participated_students} из{" "}
               {selected.total_students}; ≥ 50%:{" "}
-              <strong>{String(selected.at_least_half_participated)}</strong>
+              <strong>{selected.at_least_half_participated ? "Да" : "Нет"}</strong>
             </p>
             <p>{selected.electronic_comment || selected.paper_comment}</p>
             <Notice text={action.notice} error={action.failed} />
