@@ -34,6 +34,10 @@
           <label class="field" for="list-period"><span class="field__label">Период для формирования списка</span>
             <select id="list-period" class="field__input" disabled><option value="">Выберите период</option></select>
           </label>
+          <label class="field discipline-picker" for="selected-disciplines"><span class="field__label">Дисциплины для рекомендованных групп</span>
+            <select id="selected-disciplines" class="field__input" multiple size="4" disabled aria-describedby="discipline-help"></select>
+            <span id="discipline-help" class="discipline-picker__help">Выберите одну или несколько дисциплин.</span>
+          </label>
           <div class="recommendation-actions">
             <button id="select-visible" class="button" type="button" disabled>Рекомендовать видимые группы</button>
             <button id="clear-visible" class="button" type="button" disabled>Снять выбор видимых групп</button>
@@ -49,6 +53,7 @@
         </div>
         <div class="recommendation-actions recommendation-actions--footer">
           <button id="save-recommendations" class="button button--primary" type="button" disabled>Сохранить изменения</button>
+          <button id="save-disciplines" class="button button--primary" type="button" disabled>Закрепить дисциплины</button>
           <button id="discard-recommendations" class="button" type="button" disabled>Отменить изменения</button>
           <button id="export-recommendations" class="button" type="button" disabled>Сформировать список (CSV)</button>
           <span id="recommendation-changes" role="status" aria-live="polite">Нет несохранённых изменений</span>

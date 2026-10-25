@@ -28,7 +28,10 @@
   .group-filters { grid-template-columns: 1fr; }
   .group-filters .field:nth-child(n) { grid-column: auto; grid-row: auto; }
 }
-.recommendation-toolbar { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; align-items: end; gap: 16px; margin: 16px 0; }
+.recommendation-toolbar { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(220px, 1fr) 2fr; align-items: end; gap: 16px; margin: 16px 0; }
+.discipline-picker__help { color: var(--muted); font-size: 11px; }
+.discipline-picker .field__input { height: auto; min-height: 92px; padding: 6px; }
+.discipline-picker option { padding: 3px 5px; }
 .recommendation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .recommendation-actions--footer { margin-top: 20px; }
 .recommendation-actions .button:disabled { opacity: .55; cursor: default; }
