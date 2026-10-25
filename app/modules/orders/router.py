@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.dependencies import get_db_session
@@ -36,3 +36,12 @@ async def update(order_id: int, data: OrderCreate, session: Session, actor: Acto
 @router.delete("/{order_id}", status_code=204)
 async def delete(order_id: int, session: Session, actor: Actor):
     await OrderService(session).delete(order_id, actor)
+
+
+@router.get("/{order_id}/file")
+async def document(order_id: int, session: Session, actor: Actor):
+    return Response(
+        await OrderService(session).document(order_id, actor),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="order-{order_id}.pdf"'},
+    )

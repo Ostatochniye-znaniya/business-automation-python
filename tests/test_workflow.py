@@ -307,6 +307,7 @@ async def test_dean_reviews_only_own_faculty_reports(client, workflow):
 async def test_orders_are_persisted_and_published_orders_immutable(client, workflow):
     payload = {
         "title": "О проведении проверки",
+        "number": "42-ОД",
         "year": "2026/2027",
         "semester": "Осень",
         "date": date.today().isoformat(),
@@ -316,11 +317,83 @@ async def test_orders_are_persisted_and_published_orders_immutable(client, workf
     order = await client.post("/api/orders", json=payload)
     assert order.status_code == 201, order.text
     identifier = order.json()["id"]
+    assert (await client.get(f"/api/orders/{identifier}/file")).status_code == 409
+    assert (
+        await client.put(f"/api/orders/{identifier}", json={**payload, "draft": False})
+    ).status_code == 422
+    payload["details"] = {
+        "bossControl": "Иванов Иван Иванович",
+        "bossMethod": "Петров Пётр Петрович",
+        **{
+            key: date.today().isoformat()
+            for key in [
+                "checkSummaryDate",
+                "surveySummaryDate",
+                "electronicReportDeadline",
+                "paperReportDeadline",
+                "testingStartDate",
+                "testingEndDate",
+                "surveyStartDate",
+                "surveyEndDate",
+                "preparationStartDate",
+                "preparationEndDate",
+                "resultsProcessingStartDate",
+            ]
+        },
+    }
     assert (
         await client.put(f"/api/orders/{identifier}", json={**payload, "draft": False})
     ).status_code == 200
     assert (await client.delete(f"/api/orders/{identifier}")).status_code == 409
+    document = await client.get(f"/api/orders/{identifier}/file")
+    assert document.status_code == 200, document.text
+    assert document.content.startswith(b"%PDF")
+    assert (await client.put(f"/api/orders/{identifier}", json=payload)).status_code == 409
     assert any(row["id"] == identifier for row in (await client.get("/api/orders")).json())
+
+
+async def test_order_date_validation_and_paper_policy(client, workflow):
+    from app.core.exceptions import ValidationError
+    from app.modules.orders.schemas import OrderCreate
+    from app.modules.orders.service import OrderService
+
+    period = await workflow["session"].get(Period, 1)
+    details = {
+        "bossControl": "Иванов",
+        "bossMethod": "Петров",
+        **{
+            key: date.today().isoformat()
+            for key in [
+                "checkSummaryDate",
+                "surveySummaryDate",
+                "electronicReportDeadline",
+                "testingStartDate",
+                "testingEndDate",
+                "surveyStartDate",
+                "surveyEndDate",
+                "preparationStartDate",
+                "preparationEndDate",
+                "resultsProcessingStartDate",
+            ]
+        },
+    }
+    data = OrderCreate(
+        title="Проверка",
+        number="43-ОД",
+        year=period.academic_year,
+        semester="Осень",
+        date=date.today(),
+        period_id=1,
+        draft=False,
+        details=details,
+    )
+    with pytest.raises(ValidationError, match="бумажных"):
+        OrderService.validate_publication(data, period)
+    period.paper_reports_required = False
+    OrderService.validate_publication(data, period)
+    data.details["testingEndDate"] = (date.today() - timedelta(days=1)).isoformat()
+    with pytest.raises(ValidationError, match="последовательность"):
+        OrderService.validate_publication(data, period)
 
 
 async def test_report_templates_before_results_and_scoped_download(client, workflow):
