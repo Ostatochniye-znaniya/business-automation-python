@@ -106,6 +106,18 @@ test('pending selections survive filtering and bulk selection affects only visib
   assert.equal(evaluate(env, 'pendingRecommendations.size'), 0);
 });
 
+test('recommended groups CSV is built on the client from saved recommendations', async () => {
+  const env = setup(); await settle();
+  env.get('list-period').value = '1';
+  const input = checkbox(env, 'Рекомендовать группу Группа 1: Открытый период');
+  input.checked = true; input.listeners.change();
+  await env.get('save-recommendations').listeners.click();
+  const csv = evaluate(env, 'buildRecommendationsCsv()');
+  assert.match(csv, /^\uFEFF"Период";"Учебный год";"Семестр";"Группа"/);
+  assert.match(csv, /"Открытый период";"2026\/2027";"1-й семестр";"Группа 1";"Факультет";"Направление"/);
+  assert.equal(env.calls.filter(call => call.url === '/recommendations/export').length, 0);
+});
+
 test('group history opens and renders saved changes', async () => {
   const env = setup(); await settle();
   await evaluate(env, 'openRecommendationHistory(loadedGroups[0])');

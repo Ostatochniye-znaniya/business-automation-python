@@ -6,6 +6,7 @@ const groupsBody = document.getElementById("groups-body");
 const groupsStatus = document.getElementById("groups-status");
 const retryButton = document.getElementById("retry");
 let programs = [];
+let departments = [];
 let periods = [];
 let groupsRequest = 0;
 let referencesReady = false;
@@ -77,10 +78,11 @@ async function loadReferences() {
     retryButton.hidden = true;
     groupsStatus.dataset.error = "false";
     groupsStatus.textContent = "Загрузка справочников…";
-    const [departments, loadedPrograms, loadedPeriods, actor] = await Promise.all([
+    const [loadedDepartments, loadedPrograms, loadedPeriods, actor] = await Promise.all([
       apiGetAll("/departments"), apiGetAll("/programs"), apiGetAll("/periods"),
       apiGet("/users/me").catch(() => null),
     ]);
+    departments = loadedDepartments;
     programs = loadedPrograms;
     periods = loadedPeriods;
     canManageRecommendations = Boolean(actor?.is_active && ["ADMIN", "LPR"].includes(actor.role));
@@ -311,17 +313,38 @@ async function saveRecommendations() {
   }
 }
 
-async function exportRecommendations() {
+function csvValue(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function buildRecommendationsCsv() {
+  const period = periods.find(item => String(item.id) === listPeriodSelect.value);
+  if (!period) return null;
+  const programsById = new Map(programs.map(program => [program.id, program]));
+  const departmentsById = new Map(departments.map(department => [department.id, department.name]));
+  const rows = loadedGroups.filter(group => (group.recommendations || []).some(record =>
+    record.period_id === period.id && record.recommended)).map(group => {
+    const program = programsById.get(group.study_program_id);
+    return [period.name, period.academic_year, `${period.semester}-й семестр`, group.name,
+      departmentsById.get(program?.faculty_id) || "—", program?.name || "—"];
+  });
+  if (!rows.length) return "";
+  return `\uFEFF${[["Период", "Учебный год", "Семестр", "Группа", "Факультет / институт", "Направление подготовки"], ...rows]
+    .map(row => row.map(csvValue).join(";")).join("\r\n")}`;
+}
+
+function exportRecommendations() {
   if (!listPeriodSelect.value || pendingRecommendations.size) return;
   const button = document.getElementById("export-recommendations");
   button.disabled = true;
-  const query = new URLSearchParams({ period_id: listPeriodSelect.value });
-  if (facultySelect.value) query.set("faculty_id", facultySelect.value);
-  if (programSelect.value) query.set("study_program_id", programSelect.value);
   try {
-    const response = await fetch(`${API_BASE}/recommendations/export?${query}`);
-    if (!response.ok) throw new Error((await response.json()).detail || "Не удалось сформировать список");
-    const url = URL.createObjectURL(await response.blob());
+    const csv = buildRecommendationsCsv();
+    if (!csv) {
+      recommendationStatus.textContent = "В выбранном периоде нет рекомендованных групп.";
+      recommendationStatus.dataset.error = "false";
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
     link.download = `recommended-groups-${listPeriodSelect.value}.csv`;
@@ -329,7 +352,7 @@ async function exportRecommendations() {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    recommendationStatus.textContent = "Список сформирован по сохранённым рекомендациям с учётом факультета и направления.";
+    recommendationStatus.textContent = "Список сформирован на клиенте по сохранённым рекомендациям с учётом фильтров.";
     recommendationStatus.dataset.error = "false";
   } catch (error) {
     recommendationStatus.textContent = `Не удалось сформировать список: ${error.message}`;
