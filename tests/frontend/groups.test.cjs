@@ -23,7 +23,11 @@ function setup({ role = 'LPR', failure = false } = {}) {
   ];
   const groups = [1, 2].map(id => ({ id, name: `Группа ${id}`, study_program_id: 1,
     admission_year: 2025, testings: [], recommendations: [], enrolled_period_ids: id === 1 ? [1, 2] : [1] }));
+  const disciplines = [{ id: 10, name: 'Базы данных' }];
+  const testings = [{ id: 11, period_id: 1, group_id: 1, discipline_id: 10,
+    status: 'PLANNED', scheduled_at: null }];
   const calls = [];
+  const apiCalls = [];
   let fail = failure;
   const context = {
     document: { getElementById: get, createElement: () => new Element() },
@@ -31,12 +35,20 @@ function setup({ role = 'LPR', failure = false } = {}) {
     URLSearchParams, Date, Map, Set, setTimeout,
     apiGet: async () => ({ id: 2, full_name: 'ЛПР', role, is_active: true }),
     apiGetAll: async url => {
+      apiCalls.push(url);
       if (url === '/periods') return periods;
       if (url === '/departments') return [{ id: 1, name: 'Факультет', type: 'FACULTY' }];
       if (url === '/programs') return [{ id: 1, name: 'Направление', faculty_id: 1 }];
+      if (url === '/disciplines') return disciplines;
+      if (url.startsWith('/testing?')) {
+        const periodId = Number(new URLSearchParams(url.split('?')[1]).get('period_id'));
+        return testings.filter(testing => testing.period_id === periodId);
+      }
+      if (url.startsWith('/groups/testing-overview?')) return structuredClone(groups);
+      if (url.startsWith('/groups?')) return structuredClone(groups);
       if (url.startsWith('/recommendations/history?')) return [{ period_name: 'Открытый период', recommended: true,
         changed_by_name: 'ЛПР', changed_at: '2026-10-18T10:00:00Z' }];
-      return structuredClone(groups);
+      throw Error(`Unexpected request: ${url}`);
     },
     request: async (method, url, body) => {
       calls.push({ method, url, body });
@@ -50,7 +62,7 @@ function setup({ role = 'LPR', failure = false } = {}) {
   };
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../frontend/js/pages/groups.js'), 'utf8'), context);
-  return { get, context, calls, groups, setFailure: value => { fail = value; } };
+  return { get, context, calls, apiCalls, groups, setFailure: value => { fail = value; } };
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const evaluate = (env, code) => vm.runInContext(code, env.context);
@@ -66,6 +78,15 @@ test('recommendations are editable only for an eligible open period and authoriz
   assert.equal(checkbox(env, 'Рекомендовать группу Группа 2: Закрытый период').disabled, true);
   const guest = setup({ role: 'GUEST' }); await settle();
   assert.equal(checkbox(guest, 'Рекомендовать группу Группа 1: Открытый период').disabled, true);
+});
+
+test('groups, disciplines and testing history are loaded from their APIs', async () => {
+  const env = setup(); await settle();
+  assert.ok(env.apiCalls.some(url => url.startsWith('/groups?')));
+  assert.ok(env.apiCalls.some(url => url === '/disciplines'));
+  assert.ok(env.apiCalls.some(url => url.startsWith('/testing?period_id=1')));
+  assert.ok(env.apiCalls.some(url => url.startsWith('/testing?period_id=2')));
+  assert.equal(evaluate(env, 'testingsByGroupId.get(1)[0].discipline_name'), 'Базы данных');
 });
 
 test('save persists the selected pair with its expected version and clears pending state', async () => {
