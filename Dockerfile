@@ -4,7 +4,6 @@ WORKDIR /code
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 COPY pyproject.toml ./
 COPY app ./app
-COPY frontend ./frontend
 COPY alembic.ini ./
 COPY migrations ./migrations
 RUN pip install --no-cache-dir .

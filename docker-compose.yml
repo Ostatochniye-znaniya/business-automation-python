@@ -1,12 +1,28 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8000
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/csh/login').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
   backend:
     build: .
     env_file: .env
     environment:
-      SERVE_FRONTEND: "true"
+      SERVE_FRONTEND: "false"
       DEMO_DATA: ${DEMO_DATA:-false}
     ports:
-      - "127.0.0.1:${APP_PORT:-8000}:8000"
+      - "127.0.0.1:${BACKEND_PORT:-8001}:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
