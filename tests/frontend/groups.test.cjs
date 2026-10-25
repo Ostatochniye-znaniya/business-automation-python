@@ -24,6 +24,8 @@ function setup({ role = 'LPR', failure = false } = {}) {
   const groups = [1, 2].map(id => ({ id, name: `Группа ${id}`, study_program_id: 1,
     admission_year: 2025, testings: [], recommendations: [], enrolled_period_ids: id === 1 ? [1, 2] : [1] }));
   const calls = [];
+  const postCalls = [];
+  const testings = [];
   let fail = failure;
   const context = {
     document: { getElementById: get, createElement: () => new Element() },
@@ -34,6 +36,8 @@ function setup({ role = 'LPR', failure = false } = {}) {
       if (url === '/periods') return periods;
       if (url === '/departments') return [{ id: 1, name: 'Факультет', type: 'FACULTY' }];
       if (url === '/programs') return [{ id: 1, name: 'Направление', faculty_id: 1 }];
+      if (url === '/disciplines') return [{ id: 10, name: 'Базы данных' }];
+      if (url.startsWith('/testing?')) return structuredClone(testings);
       if (url.startsWith('/recommendations/history?')) return [{ period_name: 'Открытый период', recommended: true,
         changed_by_name: 'ЛПР', changed_at: '2026-10-18T10:00:00Z' }];
       return structuredClone(groups);
@@ -47,10 +51,15 @@ function setup({ role = 'LPR', failure = false } = {}) {
       }
       return [];
     },
+    apiPost: async (url, body) => {
+      postCalls.push({ url, body });
+      testings.push({ id: testings.length + 1, ...body });
+      return testings.at(-1);
+    },
   };
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../frontend/js/pages/groups.js'), 'utf8'), context);
-  return { get, context, calls, groups, setFailure: value => { fail = value; } };
+  return { get, context, calls, postCalls, groups, setFailure: value => { fail = value; } };
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const evaluate = (env, code) => vm.runInContext(code, env.context);
@@ -80,6 +89,23 @@ test('save persists the selected pair with its expected version and clears pendi
   assert.deepEqual(JSON.parse(JSON.stringify(body)), { changes: [{ group_id: 1, period_id: 1, recommended: true, expected_version: 0 }] });
   assert.equal(evaluate(env, 'pendingRecommendations.size'), 0);
   assert.equal(checkbox(env, 'Рекомендовать группу Группа 1: Открытый период').checked, true);
+});
+
+test('selected disciplines are saved as missing testing pairs for recommended groups', async () => {
+  const env = setup(); await settle();
+  env.get('list-period').value = '1';
+  const input = checkbox(env, 'Рекомендовать группу Группа 1: Открытый период');
+  input.checked = true; input.listeners.change();
+  await env.get('save-recommendations').listeners.click();
+  env.get('selected-disciplines').selectedOptions = [{ value: '10' }];
+  env.get('selected-disciplines').listeners.change();
+  await env.get('save-disciplines').listeners.click();
+  assert.deepEqual(JSON.parse(JSON.stringify(env.postCalls)), [{
+    url: '/testing', body: { period_id: 1, group_id: 1, discipline_id: 10, status: 'PLANNED' },
+  }]);
+  assert.match(env.get('recommendation-status').textContent, /Закреплено дисциплин: 1/);
+  await env.get('save-disciplines').listeners.click();
+  assert.equal(env.postCalls.length, 1);
 });
 
 test('server conflict preserves user changes and cancelling reloads the saved state', async () => {

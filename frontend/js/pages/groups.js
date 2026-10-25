@@ -7,20 +7,33 @@ const groupsStatus = document.getElementById("groups-status");
 const retryButton = document.getElementById("retry");
 let programs = [];
 let periods = [];
+let disciplines = [];
 let groupsRequest = 0;
 let referencesReady = false;
 let loadedGroups = [];
 let canManageRecommendations = false;
 let savingRecommendations = false;
+let savingDisciplines = false;
 const pendingRecommendations = new Map();
 const listPeriodSelect = document.getElementById("list-period");
 const recommendationStatus = document.getElementById("recommendation-status");
+const disciplineSelect = document.getElementById("selected-disciplines");
 
 function setOptions(select, entries, placeholder) {
   const previous = select.value;
   select.replaceChildren(new Option(placeholder, ""));
   entries.forEach(([value, label]) => select.add(new Option(label, String(value))));
   if (entries.some(([value]) => String(value) === previous)) select.value = previous;
+}
+
+function setDisciplineOptions() {
+  const selected = new Set(Array.from(disciplineSelect.selectedOptions || []).map(option => option.value));
+  disciplineSelect.replaceChildren();
+  disciplines.forEach(discipline => {
+    const option = new Option(discipline.name, String(discipline.id));
+    option.selected = selected.has(option.value);
+    disciplineSelect.add(option);
+  });
 }
 
 function updatePrograms() {
@@ -77,12 +90,14 @@ async function loadReferences() {
     retryButton.hidden = true;
     groupsStatus.dataset.error = "false";
     groupsStatus.textContent = "Загрузка справочников…";
-    const [departments, loadedPrograms, loadedPeriods, actor] = await Promise.all([
-      apiGetAll("/departments"), apiGetAll("/programs"), apiGetAll("/periods"),
+    const [departments, loadedPrograms, loadedPeriods, loadedDisciplines, actor] = await Promise.all([
+      apiGetAll("/departments"), apiGetAll("/programs"), apiGetAll("/periods"), apiGetAll("/disciplines"),
       apiGet("/users/me").catch(() => null),
     ]);
     programs = loadedPrograms;
     periods = loadedPeriods;
+    disciplines = loadedDisciplines;
+    setDisciplineOptions();
     canManageRecommendations = Boolean(actor?.is_active && ["ADMIN", "LPR"].includes(actor.role));
     document.getElementById("recommendation-access").textContent = canManageRecommendations
       ? `${actor.full_name}. Отметьте группы в нужных периодах и сохраните изменения. Закрытые периоды доступны только для просмотра.`
@@ -225,17 +240,31 @@ function updateListPeriod() {
 
 function updateRecommendationControls() {
   const period = periods.find(item => String(item.id) === listPeriodSelect.value);
-  const canSelect = canManageRecommendations && period && canEditPeriod(period) && loadedGroups.length && !savingRecommendations;
+  const isSaving = savingRecommendations || savingDisciplines;
+  const canSelect = canManageRecommendations && period && canEditPeriod(period) && loadedGroups.length && !isSaving;
+  const hasSavedRecommendations = Boolean(period && loadedGroups.some(group =>
+    (group.recommendations || []).some(record => record.period_id === period.id && record.recommended)));
   document.getElementById("select-visible").disabled = !canSelect;
   document.getElementById("clear-visible").disabled = !canSelect;
-  document.getElementById("save-recommendations").disabled = !canManageRecommendations || !pendingRecommendations.size || savingRecommendations;
-  document.getElementById("discard-recommendations").disabled = !pendingRecommendations.size || savingRecommendations;
-  document.getElementById("export-recommendations").disabled = !period || pendingRecommendations.size > 0 || savingRecommendations;
+  document.getElementById("save-recommendations").disabled = !canManageRecommendations || !pendingRecommendations.size || isSaving;
+  document.getElementById("discard-recommendations").disabled = !pendingRecommendations.size || isSaving;
+  document.getElementById("export-recommendations").disabled = !period || pendingRecommendations.size > 0 || isSaving;
+  document.getElementById("save-disciplines").disabled = !canManageRecommendations || !period || !canEditPeriod(period)
+    || !hasSavedRecommendations || !selectedDisciplineIds().length || pendingRecommendations.size > 0 || isSaving;
   document.getElementById("recommendation-changes").textContent = pendingRecommendations.size
     ? `Несохранённых изменений: ${pendingRecommendations.size}` : "Нет несохранённых изменений";
-  [facultySelect, programSelect, yearSelect, semesterSelect, listPeriodSelect].forEach(select => {
-    select.disabled = !referencesReady || savingRecommendations;
+  [facultySelect, programSelect, yearSelect, semesterSelect, listPeriodSelect, disciplineSelect].forEach(select => {
+    select.disabled = !referencesReady || isSaving;
   });
+}
+
+function selectedDisciplineIds() {
+  return Array.from(disciplineSelect.selectedOptions || []).map(option => Number(option.value)).filter(Boolean);
+}
+
+function recommendedGroups(period) {
+  return loadedGroups.filter(group => (group.recommendations || []).some(record =>
+    record.period_id === period.id && record.recommended));
 }
 
 function changeRecommendation(group, period, recommended) {
@@ -311,6 +340,57 @@ async function saveRecommendations() {
   }
 }
 
+// Создаются только отсутствующие пары группа-дисциплина, чтобы не дублировать тестирования.
+async function saveDisciplines() {
+  const period = periods.find(item => String(item.id) === listPeriodSelect.value);
+  const disciplineIds = selectedDisciplineIds();
+  const groups = period ? recommendedGroups(period) : [];
+  if (!period || !disciplineIds.length || !groups.length || pendingRecommendations.size || savingDisciplines) return;
+  savingDisciplines = true;
+  updateRecommendationControls();
+  recommendationStatus.textContent = "Закрепление дисциплин…";
+  recommendationStatus.dataset.error = "false";
+  try {
+    const existing = await apiGetAll(`/testing?period_id=${encodeURIComponent(period.id)}`);
+    const existingPairs = new Set(existing.map(testing => `${testing.group_id}:${testing.discipline_id}`));
+    const changes = groups.flatMap(group => disciplineIds.map(disciplineId => ({
+      period_id: period.id, group_id: group.id, discipline_id: disciplineId,
+    }))).filter(change => !existingPairs.has(`${change.group_id}:${change.discipline_id}`));
+    if (!changes.length) {
+      recommendationStatus.textContent = "Выбранные дисциплины уже закреплены за рекомендованными группами.";
+      return;
+    }
+    if (changes.length > 5000) {
+      recommendationStatus.textContent = "За один раз можно закрепить не больше 5000 дисциплин. Сузьте выбор.";
+      recommendationStatus.dataset.error = "true";
+      return;
+    }
+    let saved = 0;
+    let failed = 0;
+    for (const change of changes) {
+      try {
+        await apiPost("/testing", { ...change, status: "PLANNED" });
+        saved += 1;
+      } catch (_) {
+        failed += 1;
+      }
+    }
+    if (failed) {
+      recommendationStatus.textContent = `Закреплено дисциплин: ${saved}; не сохранено: ${failed}. Повторите попытку для оставшихся пар.`;
+      recommendationStatus.dataset.error = "true";
+    } else {
+      recommendationStatus.textContent = `Закреплено дисциплин: ${saved}.`;
+    }
+    await loadGroups();
+  } catch (error) {
+    recommendationStatus.textContent = `Не удалось закрепить дисциплины: ${error.message}`;
+    recommendationStatus.dataset.error = "true";
+  } finally {
+    savingDisciplines = false;
+    updateRecommendationControls();
+  }
+}
+
 async function exportRecommendations() {
   if (!listPeriodSelect.value || pendingRecommendations.size) return;
   const button = document.getElementById("export-recommendations");
@@ -375,9 +455,11 @@ async function openRecommendationHistory(group) {
 }
 
 listPeriodSelect.addEventListener("change", updateRecommendationControls);
+disciplineSelect.addEventListener("change", updateRecommendationControls);
 document.getElementById("select-visible").addEventListener("click", () => selectVisibleRecommendations(true));
 document.getElementById("clear-visible").addEventListener("click", () => selectVisibleRecommendations(false));
 document.getElementById("save-recommendations").addEventListener("click", saveRecommendations);
+document.getElementById("save-disciplines").addEventListener("click", saveDisciplines);
 document.getElementById("discard-recommendations").addEventListener("click", () => {
   if (savingRecommendations) return;
   pendingRecommendations.clear();
