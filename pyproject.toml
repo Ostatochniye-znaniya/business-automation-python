@@ -30,6 +30,9 @@ browser = ["playwright>=1.49,<2"]
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.modules.reports" = ["templates/*.docx"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

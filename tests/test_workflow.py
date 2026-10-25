@@ -323,6 +323,30 @@ async def test_orders_are_persisted_and_published_orders_immutable(client, workf
     assert any(row["id"] == identifier for row in (await client.get("/api/orders")).json())
 
 
+async def test_report_templates_before_results_and_scoped_download(client, workflow):
+    from docx import Document
+
+    identifier = await prepare_test(client, workflow)
+    from app.modules.testing.models import KnowledgeTest
+
+    test = await workflow["session"].get(KnowledgeTest, identifier)
+    test.status = "PLANNED"
+    await workflow["session"].commit()
+    document = await client.get(f"/api/exports/report/{identifier}.docx?template=true")
+    assert document.status_code == 200, document.text
+    parsed = Document(io.BytesIO(document.content))
+    assert len(parsed.tables) == 2
+    assert parsed.tables[0].rows[7].cells[1].text == "Студент"
+    assert parsed.tables[0].rows[7].cells[3].text == ""
+    assert (await client.get(f"/api/exports/report/{identifier}.docx")).status_code == 422
+    preview = await client.get(f"/api/exports/report/{identifier}.pdf?template=true")
+    assert preview.status_code == 200 and preview.content.startswith(b"%PDF")
+    workflow["actor"] = UserRead.model_validate(workflow["users"][3])
+    assert (
+        await client.get(f"/api/exports/report/{identifier}.docx?template=true")
+    ).status_code == 403
+
+
 async def test_department_cycles_and_references(client, workflow):
     response = await client.put(
         "/api/department-management/1",
