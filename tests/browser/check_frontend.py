@@ -294,7 +294,7 @@ async def run(output: Path):
                     lambda: dialog.get_by_role("button", name="Завершить ведомость").click(),
                 )
                 await dialog.get_by_role("button", name="Закрыть", exact=True).click()
-                await expect(page.locator(".bool-value")).to_contain_text(["true"])
+                await expect(page.locator(".bool-value")).to_have_text(["Да"])
                 dialog = await details()
                 async with page.expect_download() as pending:
                     await dialog.get_by_role("button", name="Сформировать DOCX").click()
