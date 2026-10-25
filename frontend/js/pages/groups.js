@@ -7,6 +7,8 @@ const groupsStatus = document.getElementById("groups-status");
 const retryButton = document.getElementById("retry");
 let programs = [];
 let periods = [];
+let disciplinesById = new Map();
+let testingsByGroupId = new Map();
 let groupsRequest = 0;
 let referencesReady = false;
 let loadedGroups = [];
@@ -56,10 +58,22 @@ async function loadGroups() {
   groupsStatus.dataset.error = "false";
   retryButton.hidden = true;
   try {
-    const groups = await apiGetAll(`/groups/testing-overview?${groupQuery()}`);
+    const query = groupQuery();
+    const [groups, overview] = await Promise.all([
+      apiGetAll(`/groups?${query}`), apiGetAll(`/groups/testing-overview?${query}`),
+    ]);
     if (requestId !== groupsRequest) return;
-    loadedGroups = groups;
-    renderTestingMatrix(groups);
+    const overviewByGroupId = new Map(overview.map(group => [group.id, group]));
+    loadedGroups = groups.map(group => {
+      const details = overviewByGroupId.get(group.id);
+      return {
+        ...group,
+        testings: testingsByGroupId.get(group.id) || [],
+        recommendations: details?.recommendations || [],
+        enrolled_period_ids: details?.enrolled_period_ids || [],
+      };
+    });
+    renderTestingMatrix(loadedGroups);
     updateRecommendationControls();
     groupsStatus.textContent = groups.length ? `Найдено групп: ${groups.length}` : "Группы по выбранным фильтрам не найдены.";
   } catch (error) {
@@ -77,12 +91,14 @@ async function loadReferences() {
     retryButton.hidden = true;
     groupsStatus.dataset.error = "false";
     groupsStatus.textContent = "Загрузка справочников…";
-    const [departments, loadedPrograms, loadedPeriods, actor] = await Promise.all([
-      apiGetAll("/departments"), apiGetAll("/programs"), apiGetAll("/periods"),
+    const [departments, loadedPrograms, loadedPeriods, disciplines, actor] = await Promise.all([
+      apiGetAll("/departments"), apiGetAll("/programs"), apiGetAll("/periods"), apiGetAll("/disciplines"),
       apiGet("/users/me").catch(() => null),
     ]);
     programs = loadedPrograms;
     periods = loadedPeriods;
+    disciplinesById = new Map(disciplines.map(discipline => [discipline.id, discipline.name]));
+    testingsByGroupId = await loadTestingHistory(loadedPeriods);
     canManageRecommendations = Boolean(actor?.is_active && ["ADMIN", "LPR"].includes(actor.role));
     document.getElementById("recommendation-access").textContent = canManageRecommendations
       ? `${actor.full_name}. Отметьте группы в нужных периодах и сохраните изменения. Закрытые периоды доступны только для просмотра.`
@@ -102,6 +118,22 @@ async function loadReferences() {
     groupsStatus.dataset.error = "true";
     retryButton.hidden = false;
   }
+}
+
+// История тестирований собирается по period_id и связывается с группами и дисциплинами на клиенте.
+async function loadTestingHistory(sourcePeriods) {
+  const testingPages = await Promise.all(sourcePeriods.map(period =>
+    apiGetAll(`/testing?period_id=${encodeURIComponent(period.id)}`)));
+  const grouped = new Map();
+  testingPages.flat().forEach(testing => {
+    const history = grouped.get(testing.group_id) || [];
+    history.push({
+      ...testing,
+      discipline_name: disciplinesById.get(testing.discipline_id) || `Дисциплина №${testing.discipline_id}`,
+    });
+    grouped.set(testing.group_id, history);
+  });
+  return grouped;
 }
 
 document.getElementById("group-filters").addEventListener("submit", event => event.preventDefault());
