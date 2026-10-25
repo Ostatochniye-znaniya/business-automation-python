@@ -18,6 +18,21 @@
           <a class="button" href="/pages/options.html">Настройки системы</a>
           <a class="button" href="/pages/optionsDate.html" aria-current="page">Периоды и даты</a>
         </nav>
+        <form id="period-form" class="section-form" aria-label="Добавить период">
+          <h2 class="section-caption">Добавить период</h2>
+          <div class="section-form__grid">
+            <label class="field" for="period-name"><span class="field__label">Название периода</span><input id="period-name" class="field__input" name="name" required maxlength="255"></label>
+            <label class="field" for="period-academic-year"><span class="field__label">Учебный год</span><input id="period-academic-year" class="field__input" name="academic_year" required maxlength="9" placeholder="2025/2026"></label>
+            <label class="field" for="period-semester"><span class="field__label">Семестр</span><select id="period-semester" class="field__input" name="semester" required><option value="1">Осень</option><option value="2">Весна</option></select></label>
+            <label class="field" for="period-start-date"><span class="field__label">Дата начала</span><input id="period-start-date" class="field__input" type="date" name="start_date" required></label>
+            <label class="field" for="period-end-date"><span class="field__label">Дата окончания</span><input id="period-end-date" class="field__input" type="date" name="end_date" required></label>
+            <label class="field" for="period-status"><span class="field__label">Статус</span><select id="period-status" class="field__input" name="status"><option value="DRAFT">Черновик</option><option value="OPEN">Открыт</option><option value="CLOSED">Завершён</option></select></label>
+          </div>
+          <div class="section-form__actions">
+            <button class="button button--primary" type="submit">Сохранить период</button>
+            <p id="period-form-status" class="section-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
         <p id="section-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
         <button id="section-retry" class="button" type="button" hidden>Повторить загрузку</button>
         <div class="table-scroll"><table class="table"><thead><tr><th scope="col">Период</th><th scope="col">Учебный год</th><th scope="col">Семестр</th><th scope="col">Начало</th><th scope="col">Окончание</th><th scope="col">Статус</th></tr></thead><tbody id="section-rows"></tbody></table></div>

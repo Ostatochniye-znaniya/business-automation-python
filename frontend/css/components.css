@@ -35,6 +35,11 @@
 .section-link strong { color: var(--accent); }
 .section-link span { color: var(--muted); font-size: 12px; }
 .section-caption { font-size: 16px; margin: 24px 0 12px; }
+.section-form { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.section-form__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.section-form__actions { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+.section-form__actions .section-status { margin: 0; }
 @media (max-width: 600px) {
-  .section-filters, .section-links { grid-template-columns: 1fr; }
+  .section-filters, .section-links, .section-form__grid { grid-template-columns: 1fr; }
+  .section-form__actions { align-items: flex-start; flex-direction: column; gap: 8px; }
 }
