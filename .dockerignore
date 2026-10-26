@@ -7,3 +7,8 @@ tests
 __pycache__
 .pytest_cache
 .ruff_cache
+.qa
+storage
+**/__pycache__
+**/node_modules
+**/.next

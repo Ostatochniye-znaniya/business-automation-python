@@ -34,6 +34,8 @@ async def test_all_sections_and_their_assets_are_served(monkeypatch):
                 "/pages/access.html",
                 "/pages/options.html",
                 "/pages/optionsDate.html",
+                "/pages/workbench.html",
+                "/pages/login.html",
             ):
                 response = await client.get(path)
                 assert response.status_code == 200, path

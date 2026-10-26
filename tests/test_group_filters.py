@@ -9,7 +9,16 @@ from app.modules.periods.models import TestingPeriod as Period
 
 
 @pytest.fixture
-async def group_catalog(db_session):
+async def group_catalog(db_session, application):
+    from app.core.enums import UserRole
+    from app.modules.users.dependencies import get_current_user
+    from app.modules.users.models import User
+    from app.modules.users.schemas import UserRead
+
+    user = User(id=1, full_name="Администратор", role=UserRole.ADMIN)
+    db_session.add(user)
+    await db_session.flush()
+    application.dependency_overrides[get_current_user] = lambda: UserRead.model_validate(user)
     db_session.add_all(
         [
             Department(id=1, name="ФИТ", type=DepartmentType.FACULTY),
@@ -140,15 +149,26 @@ async def test_testing_overview_is_scoped_and_includes_empty_groups(client, grou
     assert (await client.get("/api/groups/testing-overview?faculty_id=999")).json() == []
 
 
-async def test_create_testing_enrolls_group_and_preserves_explicit_status(client, group_catalog):
+async def test_create_testing_enrolls_group_and_requires_planned_status(client, group_catalog):
+    from datetime import timedelta
+
+    from app.core.enums import TestingPeriodStatus
     from app.modules.disciplines.models import Discipline
+
+    period = await group_catalog.get(Period, 2)
+    period.start_date = date.today() - timedelta(days=1)
+    period.end_date = date.today() + timedelta(days=30)
+    period.status = TestingPeriodStatus.OPEN
 
     group_catalog.add(Discipline(id=1, name="Базы данных"))
     await group_catalog.commit()
-    payload = {"group_id": 3, "period_id": 2, "discipline_id": 1, "status": "COMPLETED"}
+    payload = {"group_id": 3, "period_id": 2, "discipline_id": 1, "status": "PLANNED"}
     response = await client.post("/api/testing", json=payload)
     assert response.status_code == 201
-    assert response.json()["status"] == "COMPLETED"
+    assert response.json()["status"] == "PLANNED"
+    assert (
+        await client.post("/api/testing", json={**payload, "status": "COMPLETED"})
+    ).status_code == 422
     await client.post("/api/testing", json=payload)
     groups = (await client.get("/api/groups?academic_year=2025/2026&semester=2")).json()
     assert [row["id"] for row in groups] == [1, 2, 3]
@@ -156,7 +176,7 @@ async def test_create_testing_enrolls_group_and_preserves_explicit_status(client
     assert response.status_code == 404
 
 
-async def test_invalid_testing_status_is_rejected(client):
+async def test_invalid_testing_status_is_rejected(client, group_catalog):
     response = await client.post(
         "/api/testing",
         json={

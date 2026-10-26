@@ -27,19 +27,30 @@ class DashboardService:
         offset = 0
         while departments := await self.departments.list_departments(offset=offset, limit=100):
             for department in departments:
+                from app.core.enums import DepartmentType
+
+                if department.type not in {DepartmentType.FACULTY, DepartmentType.INSTITUTE}:
+                    continue
+                disciplines = await self.disciplines.get_dashboard_statistics(
+                    period_id, department.id
+                )
+                reports = await self.reports.get_dashboard_statistics(period_id, department.id)
                 rows.append(
                     DepartmentSummary(
                         id=department.id,
                         name=department.name,
                         groups=await self.groups.get_dashboard_statistics(period_id, department.id),
-                        disciplines=await self.disciplines.get_dashboard_statistics(
-                            period_id, department.id
+                        disciplines=disciplines,
+                        reports=reports,
+                        all_submitted=bool(
+                            disciplines.required
+                            and disciplines.actual == disciplines.required
+                            and reports.electronic_submitted == disciplines.required
+                            and (
+                                not period.paper_reports_required
+                                or reports.paper_submitted == disciplines.required
+                            )
                         ),
-                        reports=await self.reports.get_dashboard_statistics(
-                            period_id, department.id
-                        ),
-                        # TODO: agree faculty/child department aggregation for all_submitted.
-                        all_submitted=None,
                     )
                 )
             offset += len(departments)

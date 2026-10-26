@@ -4,10 +4,31 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.dependencies import get_db_session
-from app.modules.disciplines.schemas import DisciplineRead
+from app.modules.disciplines.schemas import DisciplineCreate, DisciplineRead
 from app.modules.disciplines.service import DisciplineService
+from app.modules.users.dependencies import get_current_user
+from app.modules.users.schemas import UserRead
 
 router = APIRouter(prefix="/disciplines", tags=["disciplines"])
+
+
+@router.post("", response_model=DisciplineRead, status_code=201)
+async def create(
+    data: DisciplineCreate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    actor: Annotated[UserRead, Depends(get_current_user)],
+):
+    return await DisciplineService(session).save(data, actor)
+
+
+@router.put("/{discipline_id}", response_model=DisciplineRead)
+async def update(
+    discipline_id: int,
+    data: DisciplineCreate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    actor: Annotated[UserRead, Depends(get_current_user)],
+):
+    return await DisciplineService(session).save(data, actor, discipline_id)
 
 
 def get_service(session: Annotated[AsyncSession, Depends(get_db_session)]) -> DisciplineService:

@@ -37,10 +37,12 @@ async def seed_demo_data(session: AsyncSession) -> bool:
             already_initialized = await session.scalar(marker) is not None
             if already_initialized:
                 await _seed_demo_recommendations(session)
+                await _ensure_demo_heads(session)
                 logger.info("Demo data already initialized")
                 return False
             await _insert_demo_data(session)
             await _seed_demo_recommendations(session)
+            await _ensure_demo_heads(session)
     except IntegrityError:
         # Another worker may have completed the same seed while we were starting.
         if already_initialized or await session.scalar(marker) is None:
@@ -48,6 +50,35 @@ async def seed_demo_data(session: AsyncSession) -> bool:
         return False
     logger.info("Demo data initialized")
     return True
+
+
+async def _ensure_demo_heads(session: AsyncSession) -> None:
+    """Add demo faculty roles without changing existing employees or their access."""
+    faculties = (
+        await session.scalars(
+            select(Department)
+            .where(
+                Department.name.like("Демо:%"),
+                Department.type.in_([DepartmentType.FACULTY, DepartmentType.INSTITUTE]),
+            )
+            .order_by(Department.id)
+        )
+    ).all()
+    for index, faculty in enumerate(faculties):
+        for role, label, marker in [
+            (UserRole.DEPARTMENT_HEAD, "Декан", "dean"),
+            (UserRole.DEPARTMENT_RESPONSIBLE, "Ответственный факультета", "responsible"),
+        ]:
+            external_id = f"demo:{marker}:{index}"
+            if await session.scalar(select(User.id).where(User.external_id == external_id)) is None:
+                session.add(
+                    User(
+                        external_id=external_id,
+                        full_name=f"Демо {label} — {faculty.short_name or faculty.name}",
+                        role=role,
+                        department_id=faculty.id,
+                    )
+                )
 
 
 async def _insert_demo_data(session: AsyncSession) -> None:
@@ -75,9 +106,7 @@ async def _insert_demo_data(session: AsyncSession) -> None:
             email="teacher@example.test",
             role=UserRole.TEACHER,
         ),
-        User(
-            external_id="demo:guest", full_name="Демо Гость", role=UserRole.GUEST, is_active=False
-        ),
+        User(external_id="demo:guest", full_name="Демо Гость", role=UserRole.GUEST, is_active=True),
     ]
     faculties = [
         Department(
@@ -96,6 +125,28 @@ async def _insert_demo_data(session: AsyncSession) -> None:
     ]
     session.add_all([*users, *faculties])
     await session.flush()
+    users[2].department_id = faculties[0].id
+    teachers = [
+        users[2],
+        *[
+            User(
+                external_id=f"demo:teacher:{index}",
+                full_name=f"Демо Преподаватель {index + 1}",
+                role=UserRole.TEACHER,
+                department_id=faculty.id,
+            )
+            for index, faculty in enumerate(faculties[1:], 1)
+        ],
+    ]
+    session.add_all(teachers[1:])
+    session.add(
+        User(
+            external_id="demo:chair",
+            full_name="Демо Заведующий кафедрой",
+            role=UserRole.CHAIR_HEAD,
+            department_id=faculties[0].id,
+        )
+    )
     programs = [
         StudyProgram(
             name="Демо: информационные системы и технологии",
@@ -136,6 +187,7 @@ async def _insert_demo_data(session: AsyncSession) -> None:
                     if part == 1
                     else date(start_year + 1, 8, 31),
                     status=status,
+                    paper_reports_required=True,
                 )
             )
     session.add_all([*programs, *disciplines, *periods])
@@ -182,7 +234,9 @@ async def _insert_demo_data(session: AsyncSession) -> None:
                 group_id=group.id,
                 period_id=period.id,
                 discipline_id=disciplines[index % len(disciplines)].id,
-                teacher_id=users[2].id,
+                teacher_id=teachers[index % len(teachers)].id,
+                agreement_status="AGREED",
+                room="Демо аудитория 101",
                 status=status,
                 scheduled_at=datetime.combine(
                     today if period.status == TestingPeriodStatus.OPEN else period.start_date,
@@ -200,12 +254,12 @@ async def _insert_demo_data(session: AsyncSession) -> None:
         session.add(
             Report(
                 knowledge_test_id=test.id,
-                electronic_status="Принят" if completed else "На проверке",
+                electronic_status="APPROVED" if completed else "DRAFT",
                 electronic_comment="Демонстрационный отчёт"
                 if completed
                 else "Демо: ожидается проверка",
-                paper_status="Получен" if completed else "Не сдан",
-                final_status="Принят" if completed else "В работе",
+                paper_status="APPROVED" if completed else "MISSING",
+                final_status="COMPLETE" if completed else "PENDING",
             )
         )
         if completed:

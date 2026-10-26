@@ -7,8 +7,9 @@ from app.db.dependencies import get_db_session
 from app.modules.students.models import Student
 from app.modules.students.schemas import StudentCreate, StudentRead, StudentUpdate
 from app.modules.students.service import StudentService
+from app.modules.users.dependencies import require_manager
 
-router = APIRouter(prefix="/students", tags=["students"])
+router = APIRouter(prefix="/students", tags=["students"], dependencies=[Depends(require_manager)])
 
 
 def get_service(session: Annotated[AsyncSession, Depends(get_db_session)]) -> StudentService:

@@ -19,6 +19,16 @@ class StudyGroupRead(StudyGroupCreate):
     id: int
 
 
+class GroupSave(StudyGroupCreate):
+    period_ids: list[int] = Field(default_factory=list, max_length=30)
+
+
+class StudyProgramCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    code: str | None = Field(default=None, max_length=32)
+    faculty_id: int = Field(gt=0)
+
+
 class DashboardStatistics(BaseModel):
     """Group counts for a dashboard department row."""
 

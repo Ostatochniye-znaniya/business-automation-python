@@ -5,10 +5,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.dependencies import get_db_session
 from app.modules.periods.models import TestingPeriod
-from app.modules.periods.schemas import TestingPeriodCreate, TestingPeriodRead
+from app.modules.periods.schemas import ReportPolicyUpdate, TestingPeriodCreate, TestingPeriodRead
 from app.modules.periods.service import PeriodService
+from app.modules.users.dependencies import get_current_user
+from app.modules.users.schemas import UserRead
 
 router = APIRouter(prefix="/periods", tags=["periods"])
+
+
+@router.patch("/{period_id}/report-policy", response_model=TestingPeriodRead)
+async def set_report_policy(
+    period_id: int,
+    data: ReportPolicyUpdate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    actor: Annotated[UserRead, Depends(get_current_user)],
+):
+    return await PeriodService(session).set_report_policy(
+        period_id, data.paper_reports_required, actor
+    )
+
+
+@router.put("/{period_id}", response_model=TestingPeriodRead)
+async def update_period(
+    period_id: int,
+    data: TestingPeriodCreate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    actor: Annotated[UserRead, Depends(get_current_user)],
+):
+    return await PeriodService(session).update(period_id, data, actor)
 
 
 def get_service(session: Annotated[AsyncSession, Depends(get_db_session)]) -> PeriodService:
@@ -42,6 +66,7 @@ async def get_period(
 async def create_period(
     data: TestingPeriodCreate,
     service: Annotated[PeriodService, Depends(get_service)],
+    actor: Annotated[UserRead, Depends(get_current_user)],
 ) -> TestingPeriod:
     """Create a testing period and persist it."""
-    return await service.create_period(data)
+    return await service.create_period(data, actor)
