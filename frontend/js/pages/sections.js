@@ -12,9 +12,10 @@
     status.textContent = text;
     status.dataset.error = String(error);
     retry.hidden = !error;
-    body.setAttribute("aria-busy", String(text === "Загрузка…"));
+    if (body) body.setAttribute("aria-busy", String(text === "Загрузка…"));
   }
   function rows(items) {
+    if (!body) return;
     body.replaceChildren();
     items.forEach(values => {
       const row = document.createElement("tr");
@@ -129,14 +130,112 @@
     search.addEventListener("input", filter);
     role.addEventListener("change", filter);
   } else if (page === "periods") {
-    const labels = { DRAFT: "Черновик", OPEN: "Открыт", CLOSED: "Завершён" };
-    const date = value => new Date(`${value}T12:00:00`).toLocaleDateString("ru-RU");
+    const semesterFilter = document.getElementById("semester-filter");
+    const scheduleDeadlines = document.getElementById("schedule-deadlines");
+    const reportDeadlines = document.getElementById("report-deadlines");
+    const deadlineGroups = [
+      {
+        target: scheduleDeadlines,
+        items: [
+          { id: "student-lists", label: "Формирование списков студентов", range: true },
+          { id: "testing-schedules", label: "Формирование графиков тестирования", range: true },
+          { id: "surveys", label: "Сроки проведения анкетирования", range: true },
+        ],
+      },
+      {
+        target: reportDeadlines,
+        items: [
+          { id: "electronic-reports", label: "Сдача электронных отчётов до" },
+          { id: "paper-reports", label: "Сдача бумажных отчётов до" },
+          { id: "summary-report", label: "Подготовка сводного отчёта до" },
+        ],
+      },
+    ];
+    let periods = [];
+    let selectedPeriod;
+    const deadlineValues = new Map();
+    const semesterLabel = period => {
+      const years = period.academic_year.split("/");
+      const year = period.semester === 1 ? years[0] : years[1] || years[0];
+      const season = period.semester === 1 ? "Осень" : "Весна";
+      return `${season} ${year}`;
+    };
+    const renderDeadlines = () => {
+      const values = deadlineValues.get(selectedPeriod.id) || {};
+      deadlineGroups.forEach(group => {
+        group.target.replaceChildren();
+        group.items.forEach(item => {
+          const row = document.createElement("div");
+          row.className = "deadline-row";
+          const label = document.createElement("span");
+          label.className = "deadline-row__label";
+          label.textContent = item.label;
+          row.append(label);
+          const dates = document.createElement("div");
+          dates.className = "deadline-row__dates";
+          const keys = item.range ? ["start", "end"] : ["date"];
+          keys.forEach((key, index) => {
+            if (index > 0) {
+              const separator = document.createElement("span");
+              separator.className = "deadline-row__separator";
+              separator.setAttribute("aria-hidden", "true");
+              separator.textContent = "—";
+              dates.append(separator);
+            }
+            const input = document.createElement("input");
+            input.className = "deadline-date";
+            input.type = "date";
+            const valueKey = `${item.id}:${key}`;
+            input.value = Object.prototype.hasOwnProperty.call(values, valueKey)
+              ? values[valueKey]
+              : "2025-01-01";
+            input.setAttribute("aria-label", `${item.label}: ${key === "start" ? "начало" : key === "end" ? "окончание" : "дата"}`);
+            input.addEventListener("change", () => {
+              const currentValues = deadlineValues.get(selectedPeriod.id) || {};
+              currentValues[`${item.id}:${key}`] = input.value;
+              deadlineValues.set(selectedPeriod.id, currentValues);
+              document.dispatchEvent(new CustomEvent("testing-period-deadline-changed", {
+                detail: {
+                  periodId: selectedPeriod.id,
+                  semester: selectedPeriod.semester,
+                  deadline: item.id,
+                  dateType: key,
+                  date: input.value,
+                },
+              }));
+              message("Изменение видно только в текущем окне: API сохранения сроков ещё не подключён.");
+            });
+            dates.append(input);
+          });
+          row.append(dates);
+          group.target.append(row);
+        });
+      });
+    };
+    const renderSelectedPeriod = () => {
+      selectedPeriod = periods.find(period => String(period.id) === semesterFilter.value);
+      deadlineGroups.forEach(group => group.target.replaceChildren());
+      if (!selectedPeriod) {
+        message("Выберите семестр для настройки сроков.");
+        return;
+      }
+      renderDeadlines();
+      message(`Сроки для периода «${selectedPeriod.name}» показаны как демонстрационные; API сохранения ещё не подключён.`);
+    };
+    semesterFilter.addEventListener("change", renderSelectedPeriod);
     reload = () => run(async current => {
-      const data = await apiGetAll("/periods");
+      periods = await apiGetAll("/periods");
       if (!current()) return;
-      rows(data.map(period => [period.name, period.academic_year, period.semester === 1 ? "Осень" : "Весна",
-        date(period.start_date), date(period.end_date), labels[period.status] || period.status]));
-      message(data.length ? `Периодов тестирования: ${data.length}` : "Периоды тестирования пока не добавлены.");
+      const previous = semesterFilter.value;
+      semesterFilter.replaceChildren(new Option("Выберите семестр", ""));
+      periods.forEach(period => {
+        semesterFilter.add(new Option(semesterLabel(period), String(period.id)));
+      });
+      semesterFilter.disabled = !periods.length;
+      if (periods.some(period => String(period.id) === previous)) semesterFilter.value = previous;
+      else if (periods.length) semesterFilter.value = String(periods[0].id);
+      if (periods.length) renderSelectedPeriod();
+      else message("Периоды тестирования пока не добавлены.");
     });
   }
   if (reload) reload();

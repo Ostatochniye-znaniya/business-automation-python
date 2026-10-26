@@ -22,7 +22,7 @@ function applyTheme(theme) {
 function renderSidebar() {
   const sidebar = document.getElementById("sidebar");
   if (!sidebar) return;
-  const active = currentPath() === "/pages/optionsDate.html" ? "/pages/options.html" : currentPath();
+  const active = currentPath() === "/pages/optionsDate.html" ? "/pages/access.html" : currentPath();
   const links = SECTIONS.map(function (section) {
     const isActive = section.href === active;
     const modifier = isActive ? " sidebar__link--active" : "";

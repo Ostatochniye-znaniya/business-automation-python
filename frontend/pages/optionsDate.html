@@ -3,24 +3,42 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Периоды и даты — Остаточные знания</title>
+    <title>Настройки доступа — даты</title>
     <script src="/js/theme.js"></script>
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/pages/periods.css">
   </head>
-  <body data-page="periods">
+  <body class="periods-page" data-page="periods">
     <aside id="sidebar" class="sidebar"></aside>
     <main class="workspace">
-      <header class="workspace__header"><h1>Периоды и даты</h1></header>
-      <section class="workspace__content">
-        <nav class="page-tabs" aria-label="Настройки системы">
-          <a class="button" href="/pages/options.html">Настройки системы</a>
-          <a class="button" href="/pages/optionsDate.html" aria-current="page">Периоды и даты</a>
-        </nav>
+      <section class="access-settings-card" aria-labelledby="access-settings-title">
+        <header class="access-settings-header">
+          <h1 id="access-settings-title">Настройки доступа</h1>
+          <nav class="access-settings-tabs" aria-label="Настройки доступа">
+            <a class="button" href="/pages/access.html">Настройка ролей</a>
+            <a class="button button--active" href="/pages/optionsDate.html" aria-current="page">Настройка дат</a>
+          </nav>
+        </header>
+        <label class="semester-field" for="semester-filter">
+          <span class="field__label">Семестр</span>
+          <select id="semester-filter" class="field__input" disabled>
+            <option value="">Выберите семестр</option>
+          </select>
+        </label>
         <p id="section-status" class="section-status" role="status" aria-live="polite">Загрузка…</p>
         <button id="section-retry" class="button" type="button" hidden>Повторить загрузку</button>
-        <div class="table-scroll"><table class="table"><thead><tr><th scope="col">Период</th><th scope="col">Учебный год</th><th scope="col">Семестр</th><th scope="col">Начало</th><th scope="col">Окончание</th><th scope="col">Статус</th></tr></thead><tbody id="section-rows"></tbody></table></div>
+        <div class="deadlines-layout">
+          <section class="deadlines-section" aria-labelledby="deadlines-schedule-title">
+            <h2 id="deadlines-schedule-title">Списки, графики и анкетирование</h2>
+            <div id="schedule-deadlines" class="deadlines-list"></div>
+          </section>
+          <section class="deadlines-section" aria-labelledby="deadlines-reports-title">
+            <h2 id="deadlines-reports-title">Отчёты</h2>
+            <div id="report-deadlines" class="deadlines-list"></div>
+          </section>
+        </div>
       </section>
     </main>
     <script src="/js/layout.js"></script>

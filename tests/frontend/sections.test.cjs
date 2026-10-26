@@ -15,16 +15,20 @@ class Element {
 }
 function environment(page, apiGetAll, apiGet = async () => ({})) {
   const elements = new Map();
+  const dispatchedEvents = [];
   const document = {
     body: { dataset: { page } }, documentElement: { dataset: {} },
     getElementById(id) { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); },
     createElement: () => new Element(),
+    dispatchEvent(event) { dispatchedEvents.push(event); },
   };
   const context = { document, apiGetAll, apiGet, Option: class {
     constructor(text, value) { this.textContent = text; this.value = value; }
+  }, CustomEvent: class {
+    constructor(type, options) { this.type = type; this.detail = options.detail; }
   }};
   vm.createContext(context);
-  return { context, elements, get: id => document.getElementById(id) };
+  return { context, elements, dispatchedEvents, get: id => document.getElementById(id) };
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
 function execute(env, file = 'pages/sections.js') {
@@ -100,7 +104,39 @@ test('failed request exposes retry and a successful retry clears the error', asy
   fail = false;
   await env.get('section-retry').listeners.click();
   assert.equal(env.get('section-status').dataset.error, 'false');
-  assert.equal(values(env)[0][5], 'Открыт');
+  assert.equal(env.get('semester-filter').value, '1');
+});
+
+test('period settings select semester and edit deadline dates in the matching sections', async () => {
+  const autumn = { ...period, id: 2, name: 'Осень', academic_year: '2025/2026', semester: 1,
+    start_date: '2025-09-01', end_date: '2025-12-31' };
+  const env = environment('periods', async () => [period, autumn]);
+  execute(env); await settle();
+  assert.deepEqual(env.get('semester-filter').children.map(option => option.value), ['', '1', '2']);
+  assert.equal(env.get('semester-filter').children[1].textContent, 'Весна 2026');
+  assert.equal(env.get('semester-filter').value, '1');
+  env.get('semester-filter').value = '1';
+  env.get('semester-filter').listeners.change();
+  assert.equal(env.get('schedule-deadlines').children.length, 3);
+  assert.equal(env.get('report-deadlines').children.length, 3);
+  const startDate = env.get('schedule-deadlines').children[0].children[1].children[0];
+  assert.equal(startDate.value, '2025-01-01');
+  startDate.value = '2026-02-02';
+  startDate.listeners.change();
+  assert.equal(env.dispatchedEvents[0].type, 'testing-period-deadline-changed');
+  assert.deepEqual(JSON.parse(JSON.stringify(env.dispatchedEvents[0].detail)), {
+    periodId: period.id,
+    semester: period.semester,
+    deadline: 'student-lists',
+    dateType: 'start',
+    date: '2026-02-02',
+  });
+  assert.match(env.get('section-status').textContent, /API сохранения сроков ещё не подключён/);
+  env.get('semester-filter').value = '2';
+  env.get('semester-filter').listeners.change();
+  env.get('semester-filter').value = '1';
+  env.get('semester-filter').listeners.change();
+  assert.equal(env.get('schedule-deadlines').children[0].children[1].children[0].value, '2026-02-02');
 });
 
 test('theme bootstrap uses both old storage keys and survives unavailable storage', () => {
@@ -113,13 +149,13 @@ test('theme bootstrap uses both old storage keys and survives unavailable storag
   assert.equal(env.context.document.documentElement.dataset.theme, 'light');
 });
 
-test('sidebar links resolve to existing pages and date settings activate system navigation', () => {
+test('sidebar links resolve and access navigation stays active on date settings', () => {
   const env = environment('settings');
   env.context.window = { location: { pathname: '/pages/optionsDate.html' } };
   env.context.localStorage = { setItem() {} };
   execute(env, 'layout.js');
   const sidebar = env.get('sidebar').innerHTML;
-  assert.match(sidebar, /href="\/pages\/options.html" aria-current="page"/);
+  assert.match(sidebar, /href="\/pages\/access.html" aria-current="page"/);
   assert.match(sidebar, /Проверка<br>остаточных знаний/);
   for (const [, href] of sidebar.matchAll(/href="([^"]+)"/g)) {
     assert.ok(fs.existsSync(path.join(root, 'frontend', href === '/' ? 'index.html' : href)));
