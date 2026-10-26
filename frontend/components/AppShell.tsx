@@ -16,6 +16,7 @@ const lpr = [
   { label: "Списки рекомендуемых групп", href: "/lpr/list", icon: Users },
   { label: "Отчёты", href: "/lpr/report", icon: BookOpen },
   { label: "Права доступа", href: "/access-rights", icon: Settings },
+  { label: "Настройка дат", href: "/lpr/settings/dates", icon: CalendarDays },
   { label: "Периоды и справочники", href: "/lpr/settings", icon: CalendarDays },
 ];
 const hod = [

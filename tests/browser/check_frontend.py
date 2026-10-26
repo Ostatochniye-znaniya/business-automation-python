@@ -454,6 +454,7 @@ async def run(output: Path):
                     "/lpr/report",
                     "/access-rights",
                     "/lpr/settings",
+                    "/lpr/settings/dates",
                 ]:
                     await page.goto(base + route)
                     await expect(page.locator("main h1")).to_be_visible()
