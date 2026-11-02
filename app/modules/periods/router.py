@@ -70,3 +70,20 @@ async def create_period(
 ) -> TestingPeriod:
     """Create a testing period and persist it."""
     return await service.create_period(data, actor)
+
+
+@router.delete(
+    "/{period_id}",
+    status_code=204,
+    responses={
+        404: {"description": "TestingPeriod not found"},
+        409: {"description": "TestingPeriod is referenced by other records"},
+    },
+)
+async def delete_period(
+    period_id: Annotated[int, Path(gt=0)],
+    service: Annotated[PeriodService, Depends(get_service)],
+    actor: Annotated[UserRead, Depends(get_current_user)],
+) -> None:
+    """Delete an unused testing period. Linked periods are rejected with 409."""
+    await service.delete(period_id, actor)

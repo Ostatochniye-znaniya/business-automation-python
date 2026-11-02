@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.dependencies import get_db_session
@@ -33,6 +33,22 @@ async def update(
 
 def get_service(session: Annotated[AsyncSession, Depends(get_db_session)]) -> DisciplineService:
     return DisciplineService(session)
+
+
+@router.delete(
+    "/{discipline_id}",
+    status_code=204,
+    responses={
+        404: {"description": "Discipline not found"},
+        409: {"description": "Discipline is used by knowledge tests"},
+    },
+)
+async def delete(
+    discipline_id: Annotated[int, Path(gt=0)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    actor: Annotated[UserRead, Depends(get_current_user)],
+) -> None:
+    await DisciplineService(session).delete(discipline_id, actor)
 
 
 @router.get("", response_model=list[DisciplineRead])
