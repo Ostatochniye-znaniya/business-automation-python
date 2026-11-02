@@ -1,11 +1,16 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import TestingPeriodStatus
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.time import moscow_today
+from app.modules.groups.models import GroupPeriod
+from app.modules.groups.recommendation_models import GroupRecommendation
+from app.modules.orders.models import Order
 from app.modules.periods.models import TestingPeriod
 from app.modules.periods.schemas import TestingPeriodCreate
+from app.modules.testing.models import GroupParticipation, KnowledgeTest
 
 
 class PeriodService:
@@ -63,6 +68,36 @@ class PeriodService:
         audit(self.session, actor, "period.update", period_id)
         await self.session.commit()
         return period
+
+    async def delete(self, period_id: int, actor) -> None:
+        from app.core.permissions import MANAGERS, audit, require_role
+
+        require_role(actor, MANAGERS)
+        period = await self.session.get(TestingPeriod, period_id, with_for_update=True)
+        if period is None:
+            raise NotFoundError("Период не найден")
+
+        links = (
+            (KnowledgeTest, "тестирования"),
+            (GroupParticipation, "участие групп"),
+            (GroupPeriod, "группы периода"),
+            (GroupRecommendation, "рекомендации групп"),
+            (Order, "приказы"),
+        )
+        for model, label in links:
+            linked = await self.session.scalar(
+                select(model).where(model.period_id == period_id).limit(1)
+            )
+            if linked is not None:
+                raise ConflictError(f"Нельзя удалить период: есть связанные {label}")
+
+        await self.session.delete(period)
+        audit(self.session, actor, "period.delete", period_id)
+        try:
+            await self.session.commit()
+        except IntegrityError as error:
+            await self.session.rollback()
+            raise ConflictError("Нельзя удалить период: есть связанные данные") from error
 
     async def set_report_policy(self, period_id: int, required: bool, actor) -> TestingPeriod:
         from app.core.permissions import MANAGERS, audit, require_role
