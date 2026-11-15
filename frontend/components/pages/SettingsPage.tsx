@@ -181,11 +181,25 @@ export default function SettingsPage() {
           {
             header: "",
             accessor: (row) => (
-              <Button
-                title="Изменить"
-                color="btn-blue"
-                onClick={() => setPeriod({ ...row })}
-              />
+              <div className="row-actions">
+                <Button
+                  title="Изменить"
+                  color="btn-blue"
+                  onClick={() => setPeriod({ ...row })}
+                />
+                <Button
+                  title="Удалить"
+                  color="btn-red"
+                  disabled={action.busy}
+                  onClick={() => {
+                    if (confirm(`Удалить период «${row.name}»?`))
+                      action.run(async () => {
+                        await request(`/periods/${row.id}`, "DELETE");
+                        periods.reload();
+                      });
+                  }}
+                />
+              </div>
             ),
           },
         ]}
@@ -400,6 +414,21 @@ export default function SettingsPage() {
                         `/department-management/${editing.id}`,
                         "DELETE",
                       );
+                      setEditing(null);
+                      await refresh();
+                    });
+                }}
+              />
+            )}
+            {kind === "disciplines" && !!editing.id && (
+              <Button
+                title="Удалить дисциплину"
+                color="btn-red"
+                disabled={action.busy}
+                onClick={() => {
+                  if (confirm("Удалить дисциплину?"))
+                    action.run(async () => {
+                      await request(`/disciplines/${editing.id}`, "DELETE");
                       setEditing(null);
                       await refresh();
                     });

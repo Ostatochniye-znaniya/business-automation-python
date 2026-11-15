@@ -1,9 +1,11 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.modules.disciplines.models import Discipline
 from app.modules.disciplines.schemas import DashboardStatistics, DisciplineCreate
+from app.modules.testing.models import KnowledgeTest
 from app.modules.users.schemas import UserRead
 
 
@@ -28,6 +30,30 @@ class DisciplineService:
         audit(self.session, actor, "discipline.save", discipline.id)
         await self.session.commit()
         return discipline
+
+    async def delete(self, discipline_id: int, actor: UserRead) -> None:
+        from app.core.permissions import MANAGERS, audit, require_role
+
+        require_role(actor, MANAGERS)
+        discipline = await self.session.get(Discipline, discipline_id, with_for_update=True)
+        if discipline is None:
+            raise NotFoundError("Discipline not found")
+
+        linked_id = await self.session.scalar(
+            select(KnowledgeTest.id).where(KnowledgeTest.discipline_id == discipline_id).limit(1)
+        )
+        if linked_id is not None:
+            raise ConflictError("Нельзя удалить дисциплину: она используется в тестированиях")
+
+        await self.session.delete(discipline)
+        audit(self.session, actor, "discipline.delete", discipline_id)
+        try:
+            await self.session.commit()
+        except IntegrityError as error:
+            await self.session.rollback()
+            raise ConflictError(
+                "Нельзя удалить дисциплину: она используется в тестированиях"
+            ) from error
 
     async def get_by_id(self, entity_id: int) -> Discipline:
         entity = await self.session.get(Discipline, entity_id)
