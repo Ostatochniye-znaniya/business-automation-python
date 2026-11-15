@@ -71,8 +71,37 @@ pnpm --dir frontend dev
 `http://127.0.0.1:8001/api`; другой адрес задаётся через `BACKEND_URL` перед запуском/сборкой Next.js.
 В Docker frontend доступен на порту 8000, backend — на 8001, MySQL — на 3306.
 
-Для локальной генерации PDF нужен Unicode-шрифт: Arial на Windows или пакет
-`fonts-dejavu-core` на Linux. Dockerfile устанавливает DejaVu Sans.
+Для локальной генерации PDF нужны Unicode-шрифты: Times New Roman (все начертания)
+и Arial на Windows, Times New Roman на macOS для приказов; на Linux — пакеты
+`fonts-liberation` и `fonts-dejavu-core`. Dockerfile устанавливает оба пакета.
+Приказы используют Times New Roman или метрически совместимый Liberation Serif.
+
+Для визуальной проверки приказа без входа в интерфейс и без записи в БД:
+
+```sh
+python scripts/preview_order.py
+```
+
+Откройте `.qa/order-layout/order.pdf` и сравните с образцом при одинаковом масштабе.
+`--input order.json` использует объект приказа, сохранённый из API, вместо демонстрационных
+данных. Для изображений всех страниц установите `pypdfium2` и добавьте `--png`.
+Проверяются полные страницы A4: у присланных изображений образца обрезаны поля,
+поэтому сравнивать их по общей ширине картинки нельзя. Геометрия таблицы и подписей
+взята из `app/modules/reports/templates/group_report.docx`: таблица 466,25 pt,
+Times New Roman 12 pt, заголовок и должности 14 pt. В Linux используется Liberation Serif:
+метрики совместимы, но начертание не является побитовой копией Times New Roman.
+Для точного Times New Roman в Docker на macOS подключите уже установленные системные
+шрифты через локальный каталог, исключённый из Git (они не попадут в образ или коммит):
+
+```sh
+mkdir -p .qa/order-fonts
+cp "/System/Library/Fonts/Supplemental/Times New Roman"*.ttf .qa/order-fonts/
+docker compose -p pd -f docker-compose.yml -f docker-compose.macos-fonts.yml up -d --build
+```
+
+В других окружениях можно примонтировать каталог с четырьмя файлами Times New Roman
+и указать его путь внутри контейнера в `ORDER_FONT_DIR`. При явном выборе каталога
+генератор не подменяет отсутствующие шрифты другим семейством.
 
 Если демоданные не нужны, первого администратора можно создать серверной командой:
 

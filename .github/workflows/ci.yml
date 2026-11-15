@@ -43,7 +43,7 @@ jobs:
 
       - name: Run pytest
         run: |
-          sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+          sudo apt-get update && sudo apt-get install -y fonts-dejavu-core fonts-liberation
           pytest tests/ -v
 
       - uses: actions/setup-node@v4
@@ -78,7 +78,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -e '.[dev]'
-      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core fonts-liberation
       - run: alembic upgrade head
       - run: alembic check
       - run: pytest tests/test_workflow.py -v
@@ -95,7 +95,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -e '.[dev,browser]'
-      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core fonts-liberation
       - run: python -m playwright install --with-deps chromium
       - uses: actions/setup-node@v4
         with:
