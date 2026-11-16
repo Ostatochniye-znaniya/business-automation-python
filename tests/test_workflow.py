@@ -324,26 +324,27 @@ async def test_orders_are_persisted_and_published_orders_immutable(client, workf
     payload["details"] = {
         "bossControl": "Иванов Иван Иванович",
         "bossMethod": "Петров Пётр Петрович",
+        "paperReportsRequired": "false",
         **{
             key: date.today().isoformat()
             for key in [
                 "checkSummaryDate",
-                "surveySummaryDate",
                 "electronicReportDeadline",
                 "paperReportDeadline",
                 "testingStartDate",
                 "testingEndDate",
-                "surveyStartDate",
-                "surveyEndDate",
                 "preparationStartDate",
                 "preparationEndDate",
                 "resultsProcessingStartDate",
             ]
         },
     }
-    assert (
-        await client.put(f"/api/orders/{identifier}", json={**payload, "draft": False})
-    ).status_code == 200
+    order = await client.put(f"/api/orders/{identifier}", json={**payload, "draft": False})
+    assert order.status_code == 200, order.text
+    assert order.json()["details"]["paperReportsRequired"] == "false"
+    assert "paperReportDeadline" not in order.json()["details"]
+    period = await client.get("/api/periods/1")
+    assert period.json()["paper_reports_required"] is False
     assert (await client.delete(f"/api/orders/{identifier}")).status_code == 409
     document = await client.get(f"/api/orders/{identifier}/file")
     assert document.status_code == 200, document.text
@@ -365,12 +366,9 @@ async def test_order_date_validation_and_paper_policy(client, workflow):
             key: date.today().isoformat()
             for key in [
                 "checkSummaryDate",
-                "surveySummaryDate",
                 "electronicReportDeadline",
                 "testingStartDate",
                 "testingEndDate",
-                "surveyStartDate",
-                "surveyEndDate",
                 "preparationStartDate",
                 "preparationEndDate",
                 "resultsProcessingStartDate",
@@ -390,7 +388,12 @@ async def test_order_date_validation_and_paper_policy(client, workflow):
     with pytest.raises(ValidationError, match="бумажных"):
         OrderService.validate_publication(data, period)
     period.paper_reports_required = False
-    OrderService.validate_publication(data, period)
+    assert OrderService.validate_publication(data, period) is False
+    data.details["paperReportsRequired"] = "true"
+    with pytest.raises(ValidationError, match="бумажных"):
+        OrderService.validate_publication(data, period)
+    data.details["paperReportDeadline"] = date.today().isoformat()
+    assert OrderService.validate_publication(data, period) is True
     data.details["testingEndDate"] = (date.today() - timedelta(days=1)).isoformat()
     with pytest.raises(ValidationError, match="последовательность"):
         OrderService.validate_publication(data, period)

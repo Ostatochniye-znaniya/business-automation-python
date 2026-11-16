@@ -1,0 +1,29 @@
+.parameters {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.parameters th,
+.parameters td {
+  padding: 8px;
+  border-bottom: 1px solid var(--secondary-border-c);
+  text-align: left;
+}
+
+.parameters th {
+  width: 50%;
+}
+
+.parameters tbody th {
+  font-weight: normal;
+}
+
+.parameters th label {
+  min-width: 0;
+}
+
+.parameters input[type="checkbox"] {
+  width: 18px;
+  padding: 0;
+}

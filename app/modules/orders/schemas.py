@@ -27,13 +27,10 @@ class OrderPublication(BaseModel):
     bossControl: str = Field(min_length=1, max_length=200)
     bossMethod: str = Field(min_length=1, max_length=200)
     checkSummaryDate: date
-    surveySummaryDate: date
     electronicReportDeadline: date
     paperReportDeadline: date | None = None
     testingStartDate: date
     testingEndDate: date
-    surveyStartDate: date
-    surveyEndDate: date
     preparationStartDate: date
     preparationEndDate: date
     resultsProcessingStartDate: date

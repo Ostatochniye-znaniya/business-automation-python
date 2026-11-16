@@ -271,13 +271,13 @@ async def run(output: Path):
                 await page.get_by_label("Аудитория", exact=True).fill("А-101")
                 await mutation(
                     "/assignment",
-                    lambda: page.get_by_role("button", name="Сохранить", exact=True).click(),
+                    lambda: page.get_by_role("button", name="Сохранить черновик", exact=True).click(),
                 )
                 await login(3)
                 await page.get_by_label("Проверка", exact=True).select_option(str(identifier))
                 await mutation(
                     "/agreement",
-                    lambda: page.get_by_role("button", name="Сохранить", exact=True).click(),
+                    lambda: page.get_by_role("button", name="Сформировать приказ", exact=True).click(),
                 )
                 await page.get_by_role("link", name="Отчёты", exact=True).click()
                 await page.get_by_role("button", name="Ведомость", exact=True).click()
@@ -347,8 +347,15 @@ async def run(output: Path):
                     lambda: dialog.get_by_role("button", name="Одобрить", exact=True).click(),
                 )
                 await expect(page.locator(".table-container tbody")).to_contain_text("Всё сдано")
-                policy = page.get_by_label("Принимать бумажные отчёты в выбранном семестре")
-                await mutation("/report-policy", lambda: policy.check())
+                async def set_paper_policy(required):
+                    response = await page.request.patch(
+                        base + "/api/periods/1/report-policy",
+                        data={"paper_reports_required": required},
+                    )
+                    assert response.ok, await response.text()
+                    await page.reload()
+
+                await set_paper_policy(True)
                 await expect(page.locator(".table-container tbody")).to_contain_text("Не всё сдано")
                 dialog = await details()
                 await dialog.get_by_label("Версия", exact=True).select_option("paper")
@@ -357,7 +364,7 @@ async def run(output: Path):
                     lambda: dialog.get_by_role("button", name="Одобрить", exact=True).click(),
                 )
                 await expect(page.locator(".table-container tbody")).to_contain_text("Всё сдано")
-                await mutation("/report-policy", lambda: policy.uncheck())
+                await set_paper_policy(False)
                 await expect(page.locator(".table-container tbody")).to_contain_text("Не требуется")
                 await choose("Кафедра", "Кафедра информатики")
                 await expect(page.locator(".table-container tbody tr")).to_have_count(3)
@@ -408,10 +415,17 @@ async def run(output: Path):
                 ).click()
                 dialog = page.get_by_role("dialog")
                 await dialog.get_by_label("Номер приказа", exact=True).fill("42-ОД")
+                paper = dialog.get_by_label("Принимать бумажные отчёты", exact=True)
+                deadline = dialog.get_by_label("Сдача бумажных отчётов до", exact=True)
+                await expect(deadline).to_have_count(0)
+                await paper.check()
+                await expect(deadline).to_be_visible()
+                await paper.uncheck()
+                await expect(deadline).to_have_count(0)
                 await mutation(
                     "/orders",
                     lambda: dialog.get_by_role(
-                        "button", name="Сохранить черновик", exact=True
+                        "button", name="Сохранить", exact=True
                     ).click(),
                 )
                 await page.get_by_role("button", name="Подробнее", exact=True).click()
@@ -430,9 +444,6 @@ async def run(output: Path):
                     "Окончание тестирования",
                     "Начало обработки результатов",
                     "Сводный отчёт по результатам проверки до",
-                    "Начало анкетирования",
-                    "Окончание анкетирования",
-                    "Сводный отчёт по анкетированию до",
                     "Сдача электронных отчётов до",
                 ]:
                     await dialog.get_by_label(label, exact=True).fill(date.today().isoformat())
@@ -440,7 +451,7 @@ async def run(output: Path):
                 await mutation(
                     "/orders/",
                     lambda: dialog.get_by_role(
-                        "button", name="Сформировать приказ", exact=True
+                        "button", name="Сохранить", exact=True
                     ).click(),
                 )
                 async with page.expect_download() as pending:
@@ -466,7 +477,6 @@ async def run(output: Path):
                 await login(4)
                 await expect(page.locator(".table-container tbody tr")).to_have_count(2)
                 await expect(page.locator("main")).not_to_contain_text("Чужая группа")
-                assert await policy.count() == 0
                 assert (
                     await (
                         await page.request.get(base + "/api/reports/overview?faculty_id=3")

@@ -90,20 +90,6 @@ input[type="checkbox"] {
   height: 18px;
   accent-color: var(--accent-blue-c);
 }
-.policy-setting {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 16px;
-  background: var(--background-inner-main-element-c);
-  border-radius: 12px;
-}
-.policy-setting label {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  cursor: pointer;
-}
 .notice {
   padding: 12px 16px;
   background: var(--background-inner-main-element-c);

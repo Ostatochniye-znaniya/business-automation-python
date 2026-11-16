@@ -125,8 +125,11 @@ def order_pdf(order) -> bytes:
         "7. В тестировании должны принять участие не менее 50% студентов.",
         "8. Тестирование, обработка и анализ результатов, а также формирование отчетов проводятся ответственными лицами, назначенными деканами факультетов/директорами институтов.",
         f"9. Отчет о проверке остаточных знаний представляется в отдел контроля образовательного процесса {deadline}.",
-        f"10. Анкетирование проводится с {day('surveyStartDate')} по {day('surveyEndDate')}; сводный отчет по анкетированию представляется до {day('surveySummaryDate')}.",
     ]
+    if all(fields.get(key) for key in ("surveyStartDate", "surveyEndDate", "surveySummaryDate")):
+        recommendations.append(
+            f"10. Анкетирование проводится с {day('surveyStartDate')} по {day('surveyEndDate')}; сводный отчет по анкетированию представляется до {day('surveySummaryDate')}.",
+        )
     story.extend(paragraph(text) for text in recommendations)
     story.extend([PageBreak(), appendix_stamp(2, order_date, order.number), Spacer(1, 30)])
     story.extend(report_form(order.year))

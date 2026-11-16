@@ -26,6 +26,8 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled}
       className={`btn ${color}`}
       style={style}
+      aria-label={children ? title : undefined}
+      title={children ? title : undefined}
     >
       {children ? children : title}
     </button>

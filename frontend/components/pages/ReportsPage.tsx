@@ -257,45 +257,6 @@ export default function ReportsPage() {
           />
         )}
       </div>
-      {manager && periods.selected && (
-        <div className="policy-setting">
-          <label>
-            <input
-              type="checkbox"
-              checked={periods.selected.paper_reports_required}
-              disabled={action.busy}
-              onChange={(event) => {
-                const required = event.target.checked;
-                const identifier = periods.selected!.id;
-                const previous = periods.selected!.paper_reports_required;
-                const setPolicy = (value: boolean) =>
-                  periods.setData((current) =>
-                    current.map((row) =>
-                      row.id === identifier
-                        ? { ...row, paper_reports_required: value }
-                        : row,
-                    ),
-                  );
-                setPolicy(required);
-                action.run(async () => {
-                  try {
-                    await request(
-                      `/periods/${identifier}/report-policy`,
-                      "PATCH",
-                      { paper_reports_required: required },
-                    );
-                  } catch (error) {
-                    setPolicy(previous);
-                    throw error;
-                  }
-                  rows.reload();
-                });
-              }}
-            />
-            Принимать бумажные отчёты в выбранном семестре
-          </label>
-        </div>
-      )}
       <p className="field-help">
         Электронный отчёт обязателен всегда. Участие: число студентов со
         статусом «Прошёл тестирование» / полный состав группы; «Да» при доле ≥

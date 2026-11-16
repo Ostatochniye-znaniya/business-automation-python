@@ -1,5 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
+import { Eye } from "lucide-react";
+import styles from "./OrdersPage.module.css";
 import Page, { Notice } from "@/components/Page";
 import Table from "@/components/table/Table";
 import Button from "@/components/button/Button";
@@ -40,12 +42,7 @@ const detailFields = [
   ["testingStartDate", "Начало тестирования", "date"],
   ["testingEndDate", "Окончание тестирования", "date"],
   ["resultsProcessingStartDate", "Начало обработки результатов", "date"],
-  ["checkSummaryDate", "Сводный отчёт по результатам проверки до", "date"],
-  ["surveyStartDate", "Начало анкетирования", "date"],
-  ["surveyEndDate", "Окончание анкетирования", "date"],
-  ["surveySummaryDate", "Сводный отчёт по анкетированию до", "date"],
   ["electronicReportDeadline", "Сдача электронных отчётов до", "date"],
-  ["paperReportDeadline", "Сдача бумажных отчётов до", "date"],
 ];
 export default function OrdersPage() {
   const orders = useList<Order>("/orders"),
@@ -60,9 +57,10 @@ export default function OrdersPage() {
   const selectedPeriod = periods.data.find(
     (row) => row.id === editing?.period_id,
   );
-  const paper = locked
-    ? editing?.details.paperReportsRequired === "true"
-    : selectedPeriod?.paper_reports_required;
+  const paperSetting = editing?.details.paperReportsRequired;
+  const paper = paperSetting === undefined
+    ? !locked && !!selectedPeriod?.paper_reports_required
+    : paperSetting === "true";
   const rows = orders.data.filter(
     (row) =>
       row.draft === drafts &&
@@ -70,6 +68,32 @@ export default function OrdersPage() {
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
+  function detailRow(key: string, label: string, type: string) {
+    if (!editing) return null;
+    const id = `order-${key}`;
+    return (
+      <tr key={key}>
+        <th scope="row"><label htmlFor={id}>{label}</label></th>
+        <td>
+            <input
+              id={id}
+              required
+              type={type}
+              maxLength={type === "text" ? 200 : undefined}
+              disabled={locked}
+              value={editing.details[key] || ""}
+              onChange={(event) =>
+                setEditing({
+                  ...editing,
+                  details: { ...editing.details, [key]: event.target.value },
+                })
+              }
+            />
+        </td>
+      </tr>
+    );
+  }
+
   function create() {
     const period = periods.selected;
     setEditing({
@@ -84,11 +108,12 @@ export default function OrdersPage() {
     await request(
       `/orders${editing.id ? `/${editing.id}` : ""}`,
       editing.id ? "PUT" : "POST",
-      { ...editing, draft },
+      { ...editing, draft, details: { ...editing.details, paperReportsRequired: String(paper) } },
     );
     setEditing(null);
     setDrafts(draft);
     orders.reload();
+    periods.reload();
   }
   return (
     <Page title={drafts ? "Черновики приказов" : "Приказы"}>
@@ -142,7 +167,9 @@ export default function OrdersPage() {
                 onClick={() =>
                   setEditing({ ...row, details: { ...row.details } })
                 }
-              />
+              >
+                <Eye size={18} aria-hidden="true" />
+              </Button>
             </article>
           ))}
         </div>
@@ -168,7 +195,9 @@ export default function OrdersPage() {
                     onClick={() =>
                       setEditing({ ...row, details: { ...row.details } })
                     }
-                  />
+                  >
+                    <Eye size={18} aria-hidden="true" />
+                  </Button>
                   {!row.draft && (
                     <Button
                       title="Скачать PDF"
@@ -210,104 +239,125 @@ export default function OrdersPage() {
             }}
           >
             <Notice text={action.notice} error={action.failed} />
-            <label>
-              Дата приказа
-              <input
-                type="date"
-                required
-                disabled={locked}
-                value={editing.date}
-                onChange={(event) =>
-                  setEditing({ ...editing, date: event.target.value })
-                }
-              />
-            </label>
-            <label>
-              Номер приказа
-              <input
-                required
-                maxLength={50}
-                disabled={locked}
-                value={editing.number || ""}
-                onChange={(event) =>
-                  setEditing({ ...editing, number: event.target.value })
-                }
-              />
-            </label>
-            <label>
-              Название
-              <input
-                required
-                maxLength={500}
-                disabled={locked}
-                value={editing.title}
-                onChange={(event) =>
-                  setEditing({ ...editing, title: event.target.value })
-                }
-              />
-            </label>
-            <label>
-              Проверяемый семестр
-              <select
-                required
-                disabled={locked}
-                value={editing.period_id || ""}
-                onChange={(event) => {
-                  const period = periods.data.find(
-                    (row) => row.id === Number(event.target.value),
-                  );
-                  setEditing({
-                    ...editing,
-                    period_id: period?.id || null,
-                    year: period?.academic_year || "",
-                    semester: period?.semester === 2 ? "Весна" : "Осень",
-                  });
-                }}
-              >
-                <option value="">Выберите период</option>
-                {periods.data.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Учебный год
-              <input readOnly value={editing.year} />
-            </label>
-            <label>
-              Семестр
-              <input readOnly value={editing.semester} />
-            </label>
-            <p className="notice">
-              Электронные отчёты обязательны. Бумажные отчёты:{" "}
-              {paper ? "принимаются" : "не принимаются"}. Настройка задаётся ЛПР
-              в разделе отчётов для выбранного семестра.
-            </p>
-            {detailFields
-              .filter(([key]) => key !== "paperReportDeadline" || paper)
-              .map(([key, label, type]) => (
-                <label key={key}>
-                  {label}
-                  <input
-                    required
-                    type={type}
-                    maxLength={type === "text" ? 200 : undefined}
-                    disabled={locked}
-                    value={editing.details[key] || ""}
-                    onChange={(event) =>
-                      setEditing({
-                        ...editing,
-                        details: {
+            <table className={styles.parameters}>
+              <thead>
+                <tr>
+                  <th scope="col">Параметр</th>
+                  <th scope="col">Значение</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row"><label htmlFor="order-date">Дата приказа</label></th>
+                  <td>
+                    <input
+                      id="order-date"
+                      type="date"
+                      required
+                      disabled={locked}
+                      value={editing.date}
+                      onChange={(event) =>
+                        setEditing({ ...editing, date: event.target.value })
+                      }
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row"><label htmlFor="order-number">Номер приказа</label></th>
+                  <td>
+                    <input
+                      id="order-number"
+                      maxLength={50}
+                      disabled={locked}
+                      value={editing.number || ""}
+                      onChange={(event) =>
+                        setEditing({ ...editing, number: event.target.value })
+                      }
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row"><label htmlFor="order-title">Название</label></th>
+                  <td>
+                    <input
+                      id="order-title"
+                      required
+                      maxLength={500}
+                      disabled={locked}
+                      value={editing.title}
+                      onChange={(event) =>
+                        setEditing({ ...editing, title: event.target.value })
+                      }
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row"><label htmlFor="order-period">Проверяемый семестр</label></th>
+                  <td>
+                    <select
+                      id="order-period"
+                      required
+                      disabled={locked}
+                      value={editing.period_id || ""}
+                      onChange={(event) => {
+                        const period = periods.data.find(
+                          (row) => row.id === Number(event.target.value),
+                        );
+                        setEditing({
+                          ...editing,
+                          period_id: period?.id || null,
+                          year: period?.academic_year || "",
+                          semester: period?.semester === 2 ? "Весна" : "Осень",
+                        });
+                      }}
+                    >
+                      <option value="">Выберите период</option>
+                      {periods.data.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row"><label htmlFor="order-year">Учебный год</label></th>
+                  <td>
+                    <input id="order-year" readOnly value={editing.year} />
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row"><label htmlFor="order-semester">Семестр</label></th>
+                  <td>
+                    <input id="order-semester" readOnly value={editing.semester} />
+                  </td>
+                </tr>
+                {detailFields.map(([key, label, type]) => detailRow(key, label, type))}
+                <tr>
+                  <th scope="row">
+                    <label htmlFor="order-paper">Принимать бумажные отчёты</label>
+                  </th>
+                  <td>
+                    <input
+                      id="order-paper"
+                      type="checkbox"
+                      checked={paper}
+                      disabled={locked}
+                      onChange={(event) => {
+                        const details: Order["details"] = {
                           ...editing.details,
-                          [key]: event.target.value,
-                        },
-                      })
-                    }
-                  />
-                </label>
-              ))}
+                          paperReportsRequired: String(event.target.checked),
+                        };
+                        if (!event.target.checked) delete details.paperReportDeadline;
+                        setEditing({ ...editing, details });
+                      }}
+                    />
+                  </td>
+                </tr>
+                {paper && detailRow("paperReportDeadline", "Сдача бумажных отчётов до", "date")}
+                {detailRow("checkSummaryDate", "Сводный отчёт по результатам проверки до", "date")}
+              </tbody>
+            </table>
             <div className="row-actions">
               {locked ? (
                 <Button
