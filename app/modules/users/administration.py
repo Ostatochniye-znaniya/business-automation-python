@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, UploadFile
@@ -67,10 +68,23 @@ async def decide_access(request_id: int, data: AccessDecision, session: Session,
 async def audit_events(
     session: Session,
     actor: Actor,
+    action: Annotated[str | None, Query(max_length=100)] = None,
+    actor_id: Annotated[int | None, Query(gt=0)] = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     offset: int = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 100,
 ):
-    return await administration_service.audit_events(session, actor, offset, limit)
+    return await administration_service.audit_events(
+        session,
+        actor,
+        offset,
+        limit,
+        action=action,
+        actor_id=actor_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
 
 
 @router.get("/imports")

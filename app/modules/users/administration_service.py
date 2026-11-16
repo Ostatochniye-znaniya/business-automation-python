@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -133,15 +133,34 @@ async def decide_access(
     return request
 
 
-async def audit_events(session: AsyncSession, actor: UserRead, offset: int = 0, limit: int = 100):
+async def audit_events(
+    session: AsyncSession,
+    actor: UserRead,
+    offset: int = 0,
+    limit: int = 100,
+    action: str | None = None,
+    actor_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+):
     require_role(actor, MANAGERS)
+    if date_from is not None and date_to is not None and date_from > date_to:
+        raise ValidationError("Начало диапазона не может быть позже окончания")
+
+    query = select(AuditEvent)
+    if action and action.strip():
+        query = query.where(AuditEvent.action == action.strip())
+    if actor_id is not None:
+        query = query.where(AuditEvent.actor_id == actor_id)
+    if date_from is not None:
+        query = query.where(AuditEvent.created_at >= datetime.combine(date_from, time.min))
+    if date_to is not None:
+        query = query.where(AuditEvent.created_at <= datetime.combine(date_to, time.max))
+
     return list(
         (
             await session.scalars(
-                select(AuditEvent)
-                .order_by(AuditEvent.id.desc())
-                .offset(max(0, offset))
-                .limit(limit)
+                query.order_by(AuditEvent.id.desc()).offset(max(0, offset)).limit(limit)
             )
         ).all()
     )

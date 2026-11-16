@@ -34,8 +34,15 @@ const blank = () =>
 export default function AccessPage() {
   const users = useList<User>("/administration/users"),
     units = useList<Department>("/departments"),
-    requests = useList<AccessRequest>("/administration/access-requests"),
-    audit = useList<Audit>("/administration/audit");
+    requests = useList<AccessRequest>("/administration/access-requests");
+  const [auditAction, setAuditAction] = useState(""),
+    [auditActor, setAuditActor] = useState(""),
+    [auditFrom, setAuditFrom] = useState(""),
+    [auditTo, setAuditTo] = useState(""),
+    [auditQuery, setAuditQuery] = useState("");
+  const audit = useList<Audit>(
+    `/administration/audit${auditQuery ? `?${auditQuery}` : ""}`,
+  );
   const [editing, setEditing] = useState<
       (Omit<User, "id"> & { id?: number }) | null
     >(null),
@@ -43,6 +50,23 @@ export default function AccessPage() {
     [role, setRole] = useState(""),
     [importStatus, setImportStatus] = useState("");
   const action = useAction();
+
+  function applyAuditFilters() {
+    const params = new URLSearchParams();
+    if (auditAction.trim()) params.set("action", auditAction.trim());
+    if (auditActor) params.set("actor_id", auditActor);
+    if (auditFrom) params.set("date_from", auditFrom);
+    if (auditTo) params.set("date_to", auditTo);
+    setAuditQuery(params.toString());
+  }
+
+  function resetAuditFilters() {
+    setAuditAction("");
+    setAuditActor("");
+    setAuditFrom("");
+    setAuditTo("");
+    setAuditQuery("");
+  }
   return (
     <Page title="Права доступа">
       <Notice
@@ -196,6 +220,54 @@ export default function AccessPage() {
         ]}
       />
       <h2>Журнал действий</h2>
+      <div className="form-grid">
+        <label>
+          Действие
+          <input
+            placeholder="Например, period.delete"
+            value={auditAction}
+            onChange={(event) => setAuditAction(event.target.value)}
+          />
+        </label>
+        <label>
+          Сотрудник
+          <select
+            value={auditActor}
+            onChange={(event) => setAuditActor(event.target.value)}
+          >
+            <option value="">Все сотрудники</option>
+            {users.data.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.full_name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          С даты
+          <input
+            type="date"
+            value={auditFrom}
+            onChange={(event) => setAuditFrom(event.target.value)}
+          />
+        </label>
+        <label>
+          По дату
+          <input
+            type="date"
+            value={auditTo}
+            onChange={(event) => setAuditTo(event.target.value)}
+          />
+        </label>
+        <Button
+          title="Применить фильтры"
+          color="btn-blue"
+          onClick={applyAuditFilters}
+        />
+        <button className="btn" type="button" onClick={resetAuditFilters}>
+          Сбросить
+        </button>
+      </div>
       <Table
         data={audit.data.slice(0, 100)}
         columns={[
