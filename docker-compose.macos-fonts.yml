@@ -1,0 +1,13 @@
+# Mount a local, Git-ignored copy of the host's Times New Roman, never font files in the image.
+# docker compose -p pd -f docker-compose.yml -f docker-compose.macos-fonts.yml up -d --build
+services:
+  backend:
+    environment:
+      ORDER_FONT_DIR: /usr/local/share/fonts/order
+    volumes:
+      - type: bind
+        source: ./.qa/order-fonts
+        target: /usr/local/share/fonts/order
+        read_only: true
+        bind:
+          create_host_path: false
