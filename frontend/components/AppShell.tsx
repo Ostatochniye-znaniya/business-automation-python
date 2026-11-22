@@ -7,6 +7,7 @@ import {
   Settings,
   CalendarDays,
   GraduationCap,
+  ClipboardList,
 } from "lucide-react";
 import Navbar from "./navbar/Navbar";
 import { useUser } from "@/contexts/UserContext";
@@ -24,6 +25,10 @@ const hod = [
   { label: "Выбор групп", href: "/hod/groups", icon: Users },
   { label: "Выбор дисциплин", href: "/hod/disciplines", icon: BookOpen },
   { label: "Выбор преподавателей", href: "/hod/teachers", icon: GraduationCap },
+];
+const admin = [
+  ...lpr,
+  { label: "Проверки", href: "/admin/checks", icon: ClipboardList },
 ];
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { userData } = useUser();
@@ -62,7 +67,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             ? hod
             : userData?.role === "GUEST"
               ? []
-              : lpr;
+              : userData?.role === "ADMIN"
+                ? admin
+                : lpr;
   return (
     <div className="bg-container">
       <Navbar title="Проверка остаточных знаний" linkOptions={links} />

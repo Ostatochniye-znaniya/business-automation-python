@@ -1,18 +1,20 @@
 import io
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zipfile import ZipFile
 
 import pytest
 
 from app.core.config import get_settings
-from app.core.enums import DepartmentType, UserRole
+from app.core.enums import DepartmentType, KnowledgeTestStatus, UserRole
 from app.core.enums import TestingPeriodStatus as PeriodStatus
 from app.modules.departments.models import Department
 from app.modules.disciplines.models import Discipline
 from app.modules.groups.models import GroupPeriod, StudyGroup
 from app.modules.groups.recommendation_models import GroupRecommendation
 from app.modules.periods.models import TestingPeriod as Period
+from app.modules.reports.models import Report
 from app.modules.students.models import Student
+from app.modules.testing.models import KnowledgeTest
 from app.modules.users.dependencies import get_current_user
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead
@@ -68,6 +70,102 @@ async def workflow(db_session, application, tmp_path, monkeypatch):
     application.dependency_overrides[get_current_user] = lambda: context["actor"]
     yield context
     application.dependency_overrides.pop(get_current_user, None)
+
+
+async def test_admin_checks_search_filters_and_pagination(client, workflow):
+    session = workflow["session"]
+    session.add(
+        Period(
+            id=2,
+            name="Следующий",
+            academic_year="2026/2027",
+            semester=2,
+            start_date=date.today() + timedelta(days=30),
+            end_date=date.today() + timedelta(days=60),
+            status=PeriodStatus.DRAFT,
+        )
+    )
+    await session.flush()
+    session.add_all(
+        [
+            KnowledgeTest(id=1, period_id=1, group_id=1, discipline_id=1),
+            KnowledgeTest(
+                id=2, period_id=1, group_id=1, discipline_id=2, status=KnowledgeTestStatus.CANCELLED
+            ),
+            KnowledgeTest(id=3, period_id=2, group_id=1, discipline_id=1),
+        ]
+    )
+    await session.commit()
+    url = "/api/administration/checks"
+
+    response = await client.get(url, params={"search": " 261-0 ", "limit": 1, "offset": 1})
+    assert response.status_code == 200
+    assert response.json()["total"] == 3
+    assert [row["id"] for row in response.json()["items"]] == [2]
+
+    filtered = await client.get(
+        url, params={"search": "сциплина 1", "period_id": 1, "status": "PLANNED"}
+    )
+    assert filtered.status_code == 200
+    assert filtered.json()["total"] == 1
+    row = filtered.json()["items"][0]
+    assert row["id"] == 1
+    assert row["scheduled_at"] is None
+    assert row["electronic_status"] == "MISSING"
+    assert row["stage"] == "Ожидает назначения преподавателя"
+    assert (await client.get(url, params={"search": "%"})).json() == {"items": [], "total": 0}
+
+
+async def test_admin_check_details_reflect_agreement_and_report_progress(client, workflow):
+    session = workflow["session"]
+    check = KnowledgeTest(
+        id=1,
+        period_id=1,
+        group_id=1,
+        discipline_id=1,
+        teacher_id=3,
+        scheduled_at=datetime(2026, 11, 22, 10, 30),
+        room="А-101",
+        agreement_status="REJECTED",
+        agreement_comment="Подберите другое время",
+    )
+    session.add(check)
+    await session.commit()
+    url = "/api/administration/checks/1"
+    pending = (await client.get(url)).json()
+    assert pending["stage"] == "Ожидает нового предложения даты"
+    assert pending["agreement_comment"] == "Подберите другое время"
+    assert pending["teacher_name"] == "Преподаватель"
+    assert datetime.fromisoformat(pending["scheduled_at"]) == datetime(
+        2026, 11, 22, 10, 30, tzinfo=UTC
+    )
+
+    check.agreement_status = "AGREED"
+    check.agreement_comment = None
+    check.status = KnowledgeTestStatus.COMPLETED
+    report = Report(knowledge_test_id=check.id, electronic_status="SUBMITTED")
+    session.add(report)
+    await session.commit()
+    assert (await client.get(url)).json()["stage"] == "Ожидает проверки электронного отчёта"
+
+    report.electronic_status = "APPROVED"
+    await session.commit()
+    assert (await client.get(url)).json()["stage"] == "Ожидает сдачи и проверки бумажного отчёта"
+
+    period = await session.get(Period, check.period_id)
+    period.paper_reports_required = False
+    await session.commit()
+    completed = (await client.get(url)).json()
+    assert completed["paper_status"] == "NOT_REQUIRED"
+    assert completed["stage"] == "Все отчёты приняты"
+    assert (await client.get("/api/administration/checks/1000")).status_code == 404
+
+
+@pytest.mark.parametrize("role", [UserRole.LPR, UserRole.TEACHER])
+async def test_admin_checks_are_restricted_to_admin(client, workflow, role):
+    workflow["actor"] = workflow["actor"].model_copy(update={"role": role})
+    assert (await client.get("/api/administration/checks")).status_code == 403
+    assert (await client.get("/api/administration/checks/1")).status_code == 403
 
 
 async def prepare_test(client, context):
