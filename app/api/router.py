@@ -15,6 +15,7 @@ from app.modules.reports.router import router as reports_router
 from app.modules.reports.workflow_router import router as report_workflow_router
 from app.modules.results.router import router as results_router
 from app.modules.students.router import router as students_router
+from app.modules.testing.admin_router import router as admin_checks_router
 from app.modules.testing.router import router as testing_router
 from app.modules.testing.workflow_router import router as workflow_router
 from app.modules.users.administration import router as administration_router
@@ -25,6 +26,7 @@ api_router = APIRouter()
 for router in (
     users_router,
     administration_router,
+    admin_checks_router,
     department_management_router,
     workflow_router,
     report_workflow_router,

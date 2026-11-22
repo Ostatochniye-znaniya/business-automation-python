@@ -1,0 +1,31 @@
+.stage {
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.reset {
+  color: var(--secondary-font-c);
+  background: var(--background-inner-main-element-c);
+  border: 1px solid var(--secondary-border-c);
+}
+
+.details {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.details dt {
+  font-weight: 600;
+}
+
+.details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.details p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}

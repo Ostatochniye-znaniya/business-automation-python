@@ -2,7 +2,31 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.core.enums import KnowledgeTestStatus
+from app.core.enums import KnowledgeTestStatus, TestingPeriodStatus
+
+
+class AdminCheckRead(BaseModel):
+    id: int
+    group_name: str
+    discipline_name: str
+    period_name: str
+    period_status: TestingPeriodStatus
+    teacher_name: str | None
+    scheduled_at: datetime | None
+    room: str | None
+    status: KnowledgeTestStatus
+    agreement_status: str
+    agreement_comment: str | None
+    electronic_status: str
+    paper_status: str
+    electronic_comment: str | None
+    paper_comment: str | None
+    stage: str
+
+
+class AdminChecksPage(BaseModel):
+    items: list[AdminCheckRead]
+    total: int
 
 
 class KnowledgeTestCreate(BaseModel):
