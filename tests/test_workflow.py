@@ -190,6 +190,107 @@ async def test_roster_and_scope_are_enforced(client, workflow):
     assert (await client.get("/api/testing?period_id=1")).status_code == 403
 
 
+@pytest.fixture
+async def assignment_workflow(workflow, monkeypatch):
+    from app.modules.testing.models import KnowledgeTest
+
+    session = workflow["session"]
+    period = await session.get(Period, 1)
+    period.start_date = date(2026, 11, 2)
+    period.end_date = date(2026, 11, 6)
+    monkeypatch.setattr("app.modules.periods.service.moscow_today", lambda: date(2026, 11, 4))
+    session.add_all(
+        [
+            StudyGroup(id=2, name="261-002", department_id=2),
+            User(id=5, full_name="Второй преподаватель", role=UserRole.TEACHER, department_id=2),
+        ]
+    )
+    await session.flush()
+    session.add_all(
+        [
+            KnowledgeTest(id=1, period_id=1, group_id=1, discipline_id=1),
+            KnowledgeTest(id=2, period_id=1, group_id=1, discipline_id=2),
+            KnowledgeTest(id=3, period_id=1, group_id=2, discipline_id=1),
+        ]
+    )
+    await session.commit()
+    workflow["actor"] = UserRead.model_validate(workflow["users"][1])
+
+
+@pytest.mark.usefixtures("assignment_workflow")
+@pytest.mark.parametrize(
+    "scheduled_at",
+    [
+        pytest.param("2026-11-01T21:00:00Z", id="start-day-in-moscow"),
+        pytest.param("2026-11-06T20:59:59Z", id="end-day-in-moscow"),
+    ],
+)
+async def test_assignment_accepts_period_boundaries(client, scheduled_at):
+    response = await client.put(
+        "/api/workflow/testing/1/assignment",
+        json={"teacher_id": 3, "scheduled_at": scheduled_at, "room": "А-101"},
+    )
+    assert response.status_code == 200, response.text
+
+    saved = await client.get("/api/testing/1")
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["scheduled_at"] == scheduled_at.removesuffix("Z")
+    assert saved.json()["teacher_id"] == 3
+    assert saved.json()["room"] == "А-101"
+
+
+@pytest.mark.usefixtures("assignment_workflow")
+@pytest.mark.parametrize(
+    "scheduled_at",
+    [
+        pytest.param("2026-11-01T20:59:59Z", id="before-start-day-in-moscow"),
+        pytest.param("2026-11-06T21:00:00Z", id="after-end-day-in-moscow"),
+    ],
+)
+async def test_assignment_rejects_dates_outside_period(client, scheduled_at):
+    response = await client.put(
+        "/api/workflow/testing/1/assignment",
+        json={"teacher_id": 3, "scheduled_at": scheduled_at, "room": "А-101"},
+    )
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"] == "Дата проверки должна находиться внутри периода"
+
+    saved = await client.get("/api/testing/1")
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["scheduled_at"] is None
+    assert saved.json()["teacher_id"] is None
+    assert saved.json()["room"] is None
+
+
+@pytest.mark.usefixtures("assignment_workflow")
+@pytest.mark.parametrize(
+    ("test_id", "teacher_id"),
+    [pytest.param(2, 5, id="same-group"), pytest.param(3, 3, id="same-teacher")],
+)
+async def test_assignment_rejects_schedule_conflicts(client, test_id, teacher_id):
+    occupied = await client.put(
+        "/api/workflow/testing/1/assignment",
+        json={"teacher_id": 3, "scheduled_at": "2026-11-04T12:00:00+03:00", "room": "А-101"},
+    )
+    assert occupied.status_code == 200, occupied.text
+    url = f"/api/workflow/testing/{test_id}/assignment"
+    assignment = {"teacher_id": teacher_id, "scheduled_at": "2026-11-04T10:00:00Z", "room": "А-102"}
+    original = await client.put(url, json=assignment)
+    assert original.status_code == 200, original.text
+
+    conflict = await client.put(
+        url, json={**assignment, "scheduled_at": "2026-11-04T09:00:00Z", "room": "А-103"}
+    )
+    assert conflict.status_code == 409, conflict.text
+    assert conflict.json()["detail"] == "У группы или преподавателя уже есть проверка в это время"
+
+    saved = await client.get(f"/api/testing/{test_id}")
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["scheduled_at"] == "2026-11-04T10:00:00"
+    assert saved.json()["teacher_id"] == teacher_id
+    assert saved.json()["room"] == "А-102"
+
+
 async def test_foreign_department_assignment_and_teacher_ownership(client, workflow):
     session = workflow["session"]
     session.add(
