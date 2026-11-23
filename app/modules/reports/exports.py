@@ -93,6 +93,14 @@ class ExportService:
         teacher = (
             await UserService(self.session).get_by_id(test.teacher_id) if test.teacher_id else None
         )
+        teachers = [
+            await UserService(self.session).get_by_id(item.teacher_id) for item in test.assignments
+        ]
+        teacher_names = (
+            ", ".join(t.full_name for t in teachers)
+            if teachers
+            else (teacher.full_name if teacher else "")
+        )
         department = (
             await DepartmentService(self.session).get_by_id(discipline.department_id)
             if discipline.department_id
@@ -126,7 +134,7 @@ class ExportService:
             "program_code": program.code or "" if program else "",
             "program_name": program.name if program else "",
             "faculty": faculty.name if faculty else "",
-            "teacher": teacher.full_name if teacher else "",
+            "teacher": teacher_names,
             "department": department.name if department else "",
             "previous_teacher": reports[0].previous_teacher_name if reports else None,
             "chair_head": await UserService(self.session).head_name(
@@ -191,22 +199,28 @@ class ExportService:
                     ):
                         continue
                 context = await self.context(test)
-                rows.append(
-                    [
-                        str(len(rows) + 1),
-                        context["group"],
-                        str(context["program"] or ""),
-                        context["discipline"],
-                        context["department"],
-                        context["teacher"],
-                        test.scheduled_at.replace(tzinfo=UTC)
-                        .astimezone(MOSCOW)
-                        .strftime("%d.%m.%Y %H:%M")
-                        if test.scheduled_at
-                        else "",
-                        test.room or "",
-                    ]
-                )
+                for assignment in test.assignments or [test]:
+                    teacher = (
+                        await UserService(self.session).get_by_id(assignment.teacher_id)
+                        if assignment.teacher_id
+                        else None
+                    )
+                    rows.append(
+                        [
+                            str(len(rows) + 1),
+                            context["group"],
+                            str(context["program"] or ""),
+                            context["discipline"],
+                            context["department"],
+                            teacher.full_name if teacher else "",
+                            assignment.scheduled_at.replace(tzinfo=UTC)
+                            .astimezone(MOSCOW)
+                            .strftime("%d.%m.%Y %H:%M")
+                            if assignment.scheduled_at
+                            else "",
+                            test.room or "",
+                        ]
+                    )
             offset += len(tests)
         rows.sort(key=lambda row: (row[1], row[6]))
         for index, row in enumerate(rows, 1):

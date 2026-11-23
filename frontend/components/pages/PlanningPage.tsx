@@ -30,8 +30,9 @@ export default function PlanningPage({
     [participates, setParticipates] = useState(true),
     [reason, setReason] = useState("");
   const [testId, setTestId] = useState(""),
-    [teacher, setTeacher] = useState(""),
+    [teachers, setTeachers] = useState<number[]>([]),
     [date, setDate] = useState(""),
+    [endDate, setEndDate] = useState(""),
     [room, setRoom] = useState(""),
     [approved, setApproved] = useState(true),
     [comment, setComment] = useState(""),
@@ -46,8 +47,8 @@ export default function PlanningPage({
       "—";
   const active = tests.data.filter((row) => row.status !== "CANCELLED");
   const selected = tests.data.find((row) => row.id === Number(testId));
-  const selectedDiscipline = disciplines.data.find(
-    (row) => row.id === selected?.discipline_id,
+  const eligibleTeachers = useList<User>(
+    testId && mode === "teachers" ? `/workflow/testing/${testId}/eligible-teachers` : null,
   );
   const titles = {
     groups: "Выбор групп",
@@ -199,7 +200,9 @@ export default function PlanningPage({
           },
           {
             header: "Преподаватель",
-            accessor: (row) => name(users.data, row.teacher_id),
+            accessor: (row) => row.assignments?.length
+              ? row.assignments.map((item) => name(users.data, item.teacher_id)).join(", ")
+              : name(users.data, row.teacher_id),
           },
           {
             header: "Дата / время (Москва)",
@@ -231,11 +234,13 @@ export default function PlanningPage({
                 await request(`/workflow/testing/${testId}/agreement`, "PUT", {
                   approved,
                   comment: comment || null,
+                  scheduled_at: approved && date ? new Date(date + "+03:00").toISOString() : null,
                 });
               else
-                await request(`/workflow/testing/${testId}/assignment`, "PUT", {
-                  teacher_id: Number(teacher),
-                  scheduled_at: new Date(date + "+03:00").toISOString(),
+                await request(`/workflow/testing/${testId}/assignments`, "PUT", {
+                  teacher_ids: teachers,
+                  start_date: date,
+                  end_date: endDate,
                   room,
                 });
               tests.reload();
@@ -250,7 +255,11 @@ export default function PlanningPage({
               value={testId}
               onChange={(event) => {
                 setTestId(event.target.value);
-                setTeacher("");
+                const current = active.find((row) => row.id === Number(event.target.value));
+                setTeachers(current?.assignments?.map((item) => item.teacher_id) || []);
+                setDate(mode === "teachers" ? current?.assignments?.[0]?.start_date || "" : "");
+                setEndDate(current?.assignments?.[0]?.end_date || "");
+                setRoom(current?.room || "");
               }}
             >
               <option value="">Выберите…</option>
@@ -284,27 +293,21 @@ export default function PlanningPage({
                   onChange={(event) => setComment(event.target.value)}
                 />
               </label>
+              {approved && <label>Дата и время (Москва)<input required type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} /></label>}
             </>
           ) : (
             <>
               <label>
-                Преподаватель
+                Преподаватели
                 <select
-                  aria-label="Преподаватель"
+                  aria-label="Преподаватели"
                   required
-                  value={teacher}
-                  onChange={(event) => setTeacher(event.target.value)}
+                  multiple
+                  size={5}
+                  value={teachers.map(String)}
+                  onChange={(event) => setTeachers(Array.from(event.target.selectedOptions, (option) => Number(option.value)))}
                 >
-                  <option value="">Выберите…</option>
-                  {users.data
-                    .filter(
-                      (row) =>
-                        row.role === "TEACHER" &&
-                        row.is_active &&
-                        (!selectedDiscipline?.department_id ||
-                          row.department_id ===
-                            selectedDiscipline.department_id),
-                    )
+                  {eligibleTeachers.data
                     .map((row) => (
                       <option key={row.id} value={row.id}>
                         {row.full_name}
@@ -313,14 +316,15 @@ export default function PlanningPage({
                 </select>
               </label>
               <label>
-                Дата / время (Москва)
+                Начало интервала
                 <input
                   required
-                  type="datetime-local"
+                  type="date"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
                 />
               </label>
+              <label>Конец интервала<input required type="date" min={date} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
               <label>
                 Аудитория
                 <input

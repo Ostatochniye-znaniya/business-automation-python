@@ -30,6 +30,7 @@ async def test_demo_seed_is_idempotent_and_preserves_existing_data(db_session):
     first = await counts(db_session)
     workflow_tables = {
         "orders",
+        "faculty_schedules",
         "access_requests",
         "audit_events",
         "import_logs",

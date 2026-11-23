@@ -677,3 +677,262 @@ async def test_dean_can_read_group_linked_to_faculty_only_via_program(client, wo
     workflow["actor"] = UserRead.model_validate(dean)
     assert (await client.get(f"/api/testing/{test.id}")).status_code == 200
     assert len((await client.get("/api/reports/overview")).json()) == 1
+
+
+async def create_multi_test(client, workflow):
+    session = workflow["session"]
+    teacher = User(id=5, full_name="Второй преподаватель", role=UserRole.TEACHER, department_id=2)
+    session.add(teacher)
+    await session.commit()
+    workflow["actor"] = UserRead.model_validate(workflow["users"][1])
+    response = await client.put(
+        "/api/workflow/participation",
+        json={"group_id": 1, "period_id": 1, "participates": True, "discipline_ids": [1, 2]},
+    )
+    assert response.status_code == 200, response.text
+    test_id = (await client.get("/api/testing?period_id=1")).json()[0]["id"]
+    window = {
+        "teacher_ids": [3, 5],
+        "start_date": date.today().isoformat(),
+        "end_date": (date.today() + timedelta(days=2)).isoformat(),
+        "room": "101",
+    }
+    response = await client.put(f"/api/workflow/testing/{test_id}/assignments", json=window)
+    assert response.status_code == 200, response.text
+    return test_id, teacher, window
+
+
+async def test_multiple_teachers_have_independent_dates_and_decisions(client, workflow):
+    test_id, teacher, window = await create_multi_test(client, workflow)
+    base = f"/api/workflow/testing/{test_id}"
+    eligible = (await client.get(base + "/eligible-teachers")).json()
+    assert {row["id"] for row in eligible} == {3, 5}
+    workflow["actor"] = UserRead.model_validate(workflow["users"][2])
+    assert len((await client.get("/api/testing?period_id=1")).json()) == 1
+    assert (await client.put(base + "/agreement", json={"approved": True})).status_code == 422
+    assert (
+        await client.put(
+            base + "/agreement",
+            json={
+                "approved": True,
+                "scheduled_at": (date.today() + timedelta(days=3)).isoformat() + "T12:00:00",
+            },
+        )
+    ).status_code == 422
+    result = await client.put(
+        base + "/agreement",
+        json={
+            "approved": True,
+            "scheduled_at": date.today().isoformat() + "T12:00:00",
+        },
+    )
+    assert result.status_code == 200, result.text
+    decisions = {a["teacher_id"]: a["agreement_status"] for a in result.json()["assignments"]}
+    assert decisions == {3: "AGREED", 5: "PROPOSED"}
+    workflow["actor"] = UserRead.model_validate(teacher)
+    assert len((await client.get("/api/testing?period_id=1")).json()) == 1
+    assert len((await client.get("/api/reports/overview?period_id=1")).json()) == 1
+    assert (await client.get(base + "/roster")).status_code == 200
+    rejected = await client.put(base + "/agreement", json={"approved": False, "comment": "Занят"})
+    assert rejected.status_code == 200, rejected.text
+    decisions = {a["teacher_id"]: a["agreement_status"] for a in rejected.json()["assignments"]}
+    assert decisions == {3: "AGREED", 5: "REJECTED"}
+    approved = await client.put(
+        base + "/agreement",
+        json={
+            "approved": True,
+            "scheduled_at": (date.today() + timedelta(days=1)).isoformat() + "T14:00:00",
+        },
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["agreement_status"] == "AGREED"
+    # Both names appear in report metadata; each selected date is preserved.
+    row = (await client.get("/api/reports/overview?period_id=1")).json()[0]
+    assert "Второй преподаватель" in row["teacher_name"]
+    dates = {a["scheduled_at"] for a in approved.json()["assignments"]}
+    assert len(dates) == 2
+    assert (
+        await client.get(f"/api/exports/report/{test_id}.docx?template=true")
+    ).status_code == 200
+    # Saving the unchanged list preserves existing decisions.
+    workflow["actor"] = UserRead.model_validate(workflow["users"][1])
+    unchanged = await client.put(base + "/assignments", json=window)
+    assert unchanged.json()["agreement_status"] == "AGREED"
+    # Removing a teacher revokes all access without modifying the other decision.
+    removed = await client.put(base + "/assignments", json={**window, "teacher_ids": [3]})
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["assignments"][0]["agreement_status"] == "AGREED"
+    workflow["actor"] = UserRead.model_validate(teacher)
+    assert (await client.get("/api/testing?period_id=1")).json() == []
+    assert (await client.get(f"/api/testing/{test_id}")).status_code == 403
+    assert (
+        await client.get(f"/api/exports/report/{test_id}.docx?template=true")
+    ).status_code == 403
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"teacher_ids": [3, 3]},
+        {"teacher_ids": []},
+        {"teacher_ids": [1]},
+        {"teacher_ids": [999]},
+        {"start_date": "2020-01-01"},
+        {"end_date": "2020-01-01"},
+    ],
+)
+async def test_assignment_list_validation(client, workflow, changes):
+    test_id, _, window = await create_multi_test(client, workflow)
+    response = await client.put(
+        f"/api/workflow/testing/{test_id}/assignments", json={**window, **changes}
+    )
+    assert response.status_code == 422, response.text
+    rows = (await client.get(f"/api/workflow/testing/{test_id}/assignments")).json()
+    assert {a["teacher_id"] for a in rows} == {3, 5}
+
+
+async def test_second_teacher_collision_is_detected(client, workflow):
+    test_id, teacher, _ = await create_multi_test(client, workflow)
+    workflow["actor"] = UserRead.model_validate(teacher)
+    response = await client.put(
+        f"/api/workflow/testing/{test_id}/agreement",
+        json={
+            "approved": True,
+            "scheduled_at": date.today().isoformat() + "T12:00:00",
+        },
+    )
+    assert response.status_code == 200, response.text
+    workflow["actor"] = UserRead.model_validate(workflow["users"][1])
+    other = next(
+        t for t in (await client.get("/api/testing?period_id=1")).json() if t["id"] != test_id
+    )
+    response = await client.put(
+        f"/api/workflow/testing/{other['id']}/assignment",
+        json={
+            "teacher_id": 3,
+            "scheduled_at": date.today().isoformat() + "T12:00:00",
+            "room": "102",
+        },
+    )
+    assert response.status_code == 409, response.text
+
+
+async def test_faculty_schedule_submission_rejection_and_resubmission(client, workflow):
+    session = workflow["session"]
+    responsible = User(
+        id=5, full_name="Ответственный", role=UserRole.DEPARTMENT_RESPONSIBLE, department_id=1
+    )
+    dean = User(id=6, full_name="Декан", role=UserRole.DEPARTMENT_HEAD, department_id=1)
+    foreign_dean = User(
+        id=7, full_name="Чужой декан", role=UserRole.DEPARTMENT_HEAD, department_id=2
+    )
+    session.add_all([responsible, dean, foreign_dean])
+    await session.commit()
+    base = "/api/report-workflow/schedules/1/1"
+    original = b"%PDF-1.4\nfirst schedule"
+    corrected = b"%PDF-1.4\ncorrected schedule"
+    workflow["actor"] = UserRead.model_validate(responsible)
+    assert (await client.get(base)).status_code == 404
+    assert (
+        await client.post(base + "/file", files={"file": ("bad.docx", original)})
+    ).status_code == 422
+    assert (
+        await client.post(base + "/file", files={"file": ("bad.pdf", b"not PDF")})
+    ).status_code == 422
+    uploaded = await client.post(base + "/file", files={"file": ("schedule.pdf", original)})
+    assert uploaded.status_code == 200, uploaded.text
+    assert uploaded.json()["status"] == "SUBMITTED"
+    assert (await client.put(base + "/review", json={"approved": True})).status_code == 403
+    assert (
+        await client.post(base + "/file", files={"file": ("schedule.pdf", corrected)})
+    ).status_code == 409
+    workflow["actor"] = UserRead.model_validate(foreign_dean)
+    assert (await client.get(base)).status_code == 403
+    assert (await client.get(base + "/file")).status_code == 403
+    assert (await client.put(base + "/review", json={"approved": True})).status_code == 403
+    workflow["actor"] = UserRead.model_validate(dean)
+    assert (await client.get(base + "/file")).content == original
+    assert (
+        await client.put(base + "/review", json={"approved": False, "comment": "  "})
+    ).status_code == 422
+    rejected = await client.put(
+        base + "/review", json={"approved": False, "comment": " Исправьте даты "}
+    )
+    assert rejected.json()["status"] == "REJECTED"
+    assert rejected.json()["comment"] == "Исправьте даты"
+    assert (await client.put(base + "/review", json={"approved": True})).status_code == 409
+    workflow["actor"] = UserRead.model_validate(responsible)
+    replaced = await client.post(base + "/file", files={"file": ("schedule.pdf", corrected)})
+    assert replaced.json()["id"] == uploaded.json()["id"]
+    assert replaced.json()["status"] == "SUBMITTED" and replaced.json()["comment"] is None
+    workflow["actor"] = UserRead.model_validate(dean)
+    assert (await client.get(base + "/file")).content == corrected
+    approved = await client.put(base + "/review", json={"approved": True})
+    assert approved.json()["status"] == "APPROVED"
+    workflow["actor"] = UserRead.model_validate(responsible)
+    assert (
+        await client.post(base + "/file", files={"file": ("schedule.pdf", original)})
+    ).status_code == 409
+    workflow["actor"] = UserRead.model_validate(workflow["users"][2])
+    assert (await client.get(base)).status_code == 403
+    assert (await client.get(base + "/file")).status_code == 403
+
+
+async def test_assignment_migration_preserves_old_reports_and_results(client, workflow):
+    import importlib.util
+    from pathlib import Path
+
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    from sqlalchemy import select
+
+    from app.modules.reports.models import FacultySchedule
+    from app.modules.testing.models import KnowledgeTest
+    from app.modules.testing.models import TestAssignment as Assignment
+
+    test_id = await prepare_test(client, workflow)
+    report = (await client.post(f"/api/report-workflow/testing/{test_id}")).json()
+    document = await client.get(f"/api/exports/report/{test_id}.docx")
+    assert (
+        await client.post(
+            f"/api/report-workflow/{report['id']}/file",
+            files={"file": ("report.docx", document.content)},
+        )
+    ).status_code == 200
+    session = workflow["session"]
+    old_test = await session.get(KnowledgeTest, test_id)
+    old_date = old_test.scheduled_at
+    await session.commit()
+    session.expunge_all()
+    migration_path = (
+        Path(__file__).parents[1] / "migrations/versions/0008_assignments_and_schedules.py"
+    )
+    spec = importlib.util.spec_from_file_location("migration_0008", migration_path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+    def upgrade(connection):
+        # Recreate the pre-migration database while retaining its checks/reports/results.
+        FacultySchedule.__table__.drop(connection)
+        Assignment.__table__.drop(connection)
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+
+    connection = await session.connection()
+    await connection.run_sync(upgrade)
+    await session.commit()
+    assignment = await session.scalar(
+        select(Assignment).where(Assignment.knowledge_test_id == test_id)
+    )
+    assert assignment.teacher_id == 3
+    assert assignment.scheduled_at == old_date
+    assert assignment.agreement_status == "AGREED"
+    assert assignment.start_date is None and assignment.end_date is None
+    assert (await client.get(f"/api/testing/{test_id}")).status_code == 200
+    assert (
+        await client.get(f"/api/report-workflow/{report['id']}/file")
+    ).content == document.content
+    assert (await client.get(f"/api/exports/report/{test_id}.docx")).status_code == 200
+    rows = (await client.get("/api/reports/overview?period_id=1")).json()
+    assert rows[0]["report_id"] == report["id"]
+    assert rows[0]["participated_students"] == 1

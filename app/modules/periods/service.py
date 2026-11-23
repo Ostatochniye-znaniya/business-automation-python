@@ -10,6 +10,7 @@ from app.modules.groups.recommendation_models import GroupRecommendation
 from app.modules.orders.models import Order
 from app.modules.periods.models import TestingPeriod
 from app.modules.periods.schemas import TestingPeriodCreate
+from app.modules.reports.models import FacultySchedule
 from app.modules.testing.models import GroupParticipation, KnowledgeTest
 
 
@@ -83,6 +84,7 @@ class PeriodService:
             (GroupPeriod, "группы периода"),
             (GroupRecommendation, "рекомендации групп"),
             (Order, "приказы"),
+            (FacultySchedule, "графики ПОЗ"),
         )
         for model, label in links:
             linked = await self.session.scalar(

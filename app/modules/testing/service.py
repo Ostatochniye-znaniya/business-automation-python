@@ -7,7 +7,7 @@ from app.core.exceptions import NotFoundError
 from app.modules.disciplines.models import Discipline
 from app.modules.groups.models import GroupPeriod, StudyGroup
 from app.modules.periods.models import TestingPeriod
-from app.modules.testing.models import KnowledgeTest
+from app.modules.testing.models import KnowledgeTest, TestAssignment
 from app.modules.testing.schemas import KnowledgeTestCreate
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead
@@ -101,6 +101,34 @@ class TestingService:
         ):
             raise ConflictError("Проверка группы по этой дисциплине уже существует")
         entity = KnowledgeTest(**data.model_dump())
+        if data.scheduled_at is not None:
+            from datetime import UTC
+
+            from app.core.time import MOSCOW, utc_naive
+
+            entity.scheduled_at = utc_naive(data.scheduled_at)
+            period = await PeriodService(self.session).get_by_id(data.period_id)
+            day = entity.scheduled_at.replace(tzinfo=UTC).astimezone(MOSCOW).date()
+            if not period.start_date <= day <= period.end_date:
+                raise ValidationError("Дата проверки должна находиться внутри периода")
+        if data.teacher_id is not None:
+            from app.core.enums import UserRole
+
+            teacher = await self.session.get(User, data.teacher_id)
+            discipline = await self.session.get(Discipline, data.discipline_id)
+            if (
+                not teacher.is_active
+                or teacher.role != UserRole.TEACHER
+                or (discipline.department_id and teacher.department_id != discipline.department_id)
+            ):
+                raise ValidationError("Преподаватель не может проводить эту дисциплину")
+            entity.assignments = [
+                TestAssignment(
+                    teacher_id=data.teacher_id,
+                    scheduled_at=entity.scheduled_at,
+                    agreement_status="PROPOSED",
+                )
+            ]
         self.session.add(entity)
         audit(self.session, actor, "testing.create")
         await self.session.commit()

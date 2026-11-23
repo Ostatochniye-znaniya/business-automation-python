@@ -49,6 +49,7 @@ export interface KnowledgeTest {
   status: string;
   agreement_status: string;
   agreement_comment: string | null;
+  assignments: { teacher_id: number; start_date: string | null; end_date: string | null; scheduled_at: string | null; agreement_status: string; agreement_comment: string | null }[];
 }
 export interface ReportRow {
   knowledge_test_id: number;

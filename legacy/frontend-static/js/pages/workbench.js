@@ -135,9 +135,9 @@
     resetRoster();
     const result = await apiGetAll(`/workflow/testing?period_id=${period()}`);
     if (ticket !== revision) return;
-    tests = result.filter(
-      (test) => actor.role !== "TEACHER" || test.teacher_id === actor.id,
-    );
+    tests = result.filter((test) => actor.role !== "TEACHER" ||
+      test.assignments?.some((item) => item.teacher_id === actor.id) ||
+      (!test.assignments?.length && test.teacher_id === actor.id));
     if (
       ["ADMIN", "LPR", "CHAIR_HEAD", "DEPARTMENT_RESPONSIBLE"].includes(
         actor.role,
@@ -166,7 +166,8 @@
       tests.map((test) => [
         name("groups", test.group_id),
         name("disciplines", test.discipline_id),
-        test.teacher_id ? name("teachers", test.teacher_id) : "Не назначен",
+        test.assignments?.length ? test.assignments.map((item) => name("teachers", item.teacher_id)).join(", ") :
+          (test.teacher_id ? name("teachers", test.teacher_id) : "Не назначен"),
         test.scheduled_at
           ? new Date(test.scheduled_at + "Z").toLocaleString("ru-RU", {
               timeZone: "Europe/Moscow",
@@ -451,9 +452,10 @@
     await loadTests();
   });
   submit("assignment", async (value) => {
-    await request("PUT", `/workflow/testing/${value.test_id}/assignment`, {
-      teacher_id: Number(value.teacher_id),
-      scheduled_at: new Date(value.scheduled_at + "+03:00").toISOString(),
+    await request("PUT", `/workflow/testing/${value.test_id}/assignments`, {
+      teacher_ids: [...$("assignment").elements.namedItem("teacher_ids").selectedOptions].map((option) => Number(option.value)),
+      start_date: value.start_date,
+      end_date: value.end_date,
       room: value.room,
     });
     await loadTests();
@@ -462,8 +464,48 @@
     await request("PUT", `/workflow/testing/${value.test_id}/agreement`, {
       approved: value.approved === "true",
       comment: value.comment || null,
+      scheduled_at: value.scheduled_at ? new Date(value.scheduled_at + "+03:00").toISOString() : null,
     });
     await loadTests();
+  });
+  $("assignment").elements.namedItem("test_id").addEventListener("change", async (event) => {
+    const id = event.target.value;
+    const select = $("assignment").elements.namedItem("teacher_ids");
+    select.replaceChildren();
+    if (!id) return;
+    await action(async () => {
+      const teachers = await apiGet(`/workflow/testing/${id}/eligible-teachers`);
+      if (event.target.value !== id) return;
+      teachers.forEach((teacher) => select.add(new Option(teacher.full_name, teacher.id)));
+      const test = tests.find((item) => String(item.id) === id);
+      for (const option of select.options)
+        option.selected = test?.assignments?.some((item) => item.teacher_id === Number(option.value)) || false;
+      const first = test?.assignments?.[0];
+      fill($("assignment"), {start_date: first?.start_date, end_date: first?.end_date, room: test?.room});
+    });
+  });
+  const schedulePath = () => {
+    const faculty = $("faculty-schedule").elements.namedItem("faculty_id").value;
+    if (!faculty) throw new Error("Выберите факультет.");
+    return `/report-workflow/schedules/${faculty}/${period()}`;
+  };
+  const showSchedule = async () => {
+    const schedule = await apiGet(schedulePath());
+    $("schedule-state").textContent = `${labels[schedule.status] || schedule.status}. ${schedule.comment || ""}`;
+  };
+  $("schedule-status").addEventListener("click", () => action(showSchedule));
+  $("schedule-download").addEventListener("click", () => action(() => download(schedulePath() + "/file")));
+  submit("faculty-schedule", async (_, form) => {
+    const file = form.elements.namedItem("file").files[0];
+    if (!file) throw new Error("Выберите PDF.");
+    const body = new FormData();
+    body.append("file", file);
+    await upload(schedulePath() + "/file", body);
+    await showSchedule();
+  });
+  submit("schedule-review", async (value) => {
+    await request("PUT", schedulePath() + "/review", {approved: value.approved === "true", comment: value.comment || null});
+    await showSchedule();
   });
   submit("upload", async (_, form) => {
     if (!activeReport) throw new Error("Сначала создайте карточку отчёта.");
@@ -660,6 +702,9 @@
       $("assignment").hidden =
         actor.role === "TEACHER" || actor.role === "DEPARTMENT_HEAD";
       $("agreement").hidden = actor.role !== "TEACHER";
+      $("faculty-schedule").hidden = !["DEPARTMENT_RESPONSIBLE", "DEPARTMENT_HEAD", "ADMIN", "LPR"].includes(actor.role);
+      $("faculty-schedule").elements.namedItem("file").hidden = !["DEPARTMENT_RESPONSIBLE", "ADMIN", "LPR"].includes(actor.role);
+      $("schedule-review").hidden = !["DEPARTMENT_HEAD", "ADMIN", "LPR"].includes(actor.role);
       const [groups, disciplines, employees, units, loadedPeriods] =
         await Promise.all([
           apiGetAll("/groups"),
@@ -690,6 +735,9 @@
         "departments",
         units.map((row) => [row.id, row.name]),
       );
+      catalog("faculties", units.filter((row) => ["FACULTY", "INSTITUTE"].includes(row.type) &&
+        (["ADMIN", "LPR"].includes(actor.role) || row.id === actor.department_id))
+        .map((row) => [row.id, row.name]));
       sourceCatalogs.groups = groups;
       sourceCatalogs.disciplines = disciplines;
       if (managers) await reloadCatalog("programs", "/programs");

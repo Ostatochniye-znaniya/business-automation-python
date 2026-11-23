@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.db.dependencies import get_db_session
 from app.modules.reports.files import existing_file
-from app.modules.reports.schemas import ReportMetadata, ReportRead, ReviewSave
+from app.modules.reports.schedules import FacultyScheduleService
+from app.modules.reports.schemas import FacultyScheduleRead, ReportMetadata, ReportRead, ReviewSave
 from app.modules.reports.service import ReportService
 from app.modules.testing.workflow import TestingWorkflow
 from app.modules.users.dependencies import get_current_user
@@ -85,3 +86,36 @@ async def review(
     return await ReportService(session).review(
         report_id, version, data.approved, data.comment, actor
     )
+
+
+@router.post("/schedules/{faculty_id}/{period_id}/file", response_model=FacultyScheduleRead)
+async def upload_schedule(
+    faculty_id: int, period_id: int, file: UploadFile, session: Session, actor: Actor
+):
+    content = await file.read(get_settings().MAX_REPORT_BYTES + 1)
+    return await FacultyScheduleService(session).upload(
+        faculty_id, period_id, file.filename or "", content, actor
+    )
+
+
+@router.get("/schedules/{faculty_id}/{period_id}", response_model=FacultyScheduleRead)
+async def current_schedule(faculty_id: int, period_id: int, session: Session, actor: Actor):
+    return await FacultyScheduleService(session).get(faculty_id, period_id, actor)
+
+
+@router.get("/schedules/{faculty_id}/{period_id}/file")
+async def download_schedule(faculty_id: int, period_id: int, session: Session, actor: Actor):
+    schedule = await FacultyScheduleService(session).get(faculty_id, period_id, actor)
+    return FileResponse(
+        existing_file(schedule.file_key),
+        filename=f"schedule-{faculty_id}-{period_id}.pdf",
+        media_type="application/pdf",
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
+
+
+@router.put("/schedules/{faculty_id}/{period_id}/review", response_model=FacultyScheduleRead)
+async def review_schedule(
+    faculty_id: int, period_id: int, data: ReviewSave, session: Session, actor: Actor
+):
+    return await FacultyScheduleService(session).review(faculty_id, period_id, data, actor)

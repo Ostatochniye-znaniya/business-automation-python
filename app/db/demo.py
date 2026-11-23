@@ -21,7 +21,7 @@ from app.modules.periods.models import TestingPeriod
 from app.modules.reports.models import Report
 from app.modules.results.models import TestResult
 from app.modules.students.models import Student
-from app.modules.testing.models import KnowledgeTest
+from app.modules.testing.models import KnowledgeTest, TestAssignment
 from app.modules.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -243,6 +243,13 @@ async def _insert_demo_data(session: AsyncSession) -> None:
                     time(10, 0),
                 ),
             )
+            test.assignments = [
+                TestAssignment(
+                    teacher_id=test.teacher_id,
+                    scheduled_at=test.scheduled_at,
+                    agreement_status=test.agreement_status,
+                )
+            ]
             tests.append((test, index))
             session.add(test)
     session.add_all(students)

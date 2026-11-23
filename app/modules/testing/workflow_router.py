@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.dependencies import get_db_session
 from app.modules.testing.schemas import (
     AgreementSave,
+    AssignmentRead,
     AssignmentSave,
+    AssignmentsSave,
     KnowledgeTestRead,
     ParticipationSave,
 )
@@ -46,12 +48,12 @@ async def select_group(data: ParticipationSave, session: Session, actor: Actor):
     return await TestingWorkflow(session).select_group(data, actor)
 
 
-@router.put("/testing/{test_id}/assignment")
+@router.put("/testing/{test_id}/assignment", response_model=KnowledgeTestRead)
 async def assignment(test_id: int, data: AssignmentSave, session: Session, actor: Actor):
     return await TestingWorkflow(session).assign(test_id, data, actor)
 
 
-@router.put("/testing/{test_id}/agreement")
+@router.put("/testing/{test_id}/agreement", response_model=KnowledgeTestRead)
 async def agreement(test_id: int, data: AgreementSave, session: Session, actor: Actor):
     return await TestingWorkflow(session).agree(test_id, data, actor)
 
@@ -59,3 +61,19 @@ async def agreement(test_id: int, data: AgreementSave, session: Session, actor: 
 @router.get("/testing/{test_id}/roster")
 async def roster(test_id: int, session: Session, actor: Actor):
     return await TestingWorkflow(session).roster(test_id, actor)
+
+
+@router.get("/testing/{test_id}/assignments", response_model=list[AssignmentRead])
+async def assignments(test_id: int, session: Session, actor: Actor):
+    test = await TestingWorkflow(session).get_test(test_id, actor)
+    return test.assignments
+
+
+@router.put("/testing/{test_id}/assignments", response_model=KnowledgeTestRead)
+async def save_assignments(test_id: int, data: AssignmentsSave, session: Session, actor: Actor):
+    return await TestingWorkflow(session).save_assignments(test_id, data, actor)
+
+
+@router.get("/testing/{test_id}/eligible-teachers", response_model=list[UserRead])
+async def eligible_teachers(test_id: int, session: Session, actor: Actor):
+    return await TestingWorkflow(session).eligible_teachers(test_id, actor)

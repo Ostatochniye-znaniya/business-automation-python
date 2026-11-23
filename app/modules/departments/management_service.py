@@ -8,6 +8,7 @@ from app.modules.departments.schemas import DepartmentCreate, DepartmentRead
 from app.modules.departments.service import DepartmentService
 from app.modules.disciplines.models import Discipline
 from app.modules.groups.models import StudyGroup, StudyProgram
+from app.modules.reports.models import FacultySchedule
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead
 
@@ -66,6 +67,7 @@ async def delete(department_id: int, session: AsyncSession, actor: UserRead):
         (StudyGroup, StudyGroup.department_id),
         (Discipline, Discipline.department_id),
         (StudyProgram, StudyProgram.faculty_id),
+        (FacultySchedule, FacultySchedule.faculty_id),
     ]:
         if await session.scalar(select(model.id).where(field == department_id).limit(1)):
             raise ConflictError(

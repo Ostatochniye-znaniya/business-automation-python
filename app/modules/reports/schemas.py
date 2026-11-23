@@ -61,3 +61,12 @@ class ReportOverview(BaseModel):
     participated_students: int
     participation_percentage: float
     at_least_half_participated: bool
+
+
+class FacultyScheduleRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    faculty_id: int
+    period_id: int
+    status: str
+    comment: str | None

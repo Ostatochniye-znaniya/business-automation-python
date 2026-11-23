@@ -74,7 +74,7 @@
             /></label>
             <button class="button" type="submit">Сохранить выбор</button>
           </form>
-          <h2>Назначение преподавателя и времени</h2>
+          <h2>Назначение преподавателей</h2>
           <form id="assignment" class="workflow-form">
             <label
               >Проверка<select
@@ -84,22 +84,29 @@
               ></select
             ></label>
             <label
-              >Преподаватель<select
-                name="teacher_id"
-                data-catalog="teachers"
+              >Преподаватели<select
+                name="teacher_ids"
+                multiple
+                size="5"
                 required
               ></select
             ></label>
             <label
-              >Дата и время (Москва)<input
-                name="scheduled_at"
-                type="datetime-local"
+              >Начало интервала<input
+                name="start_date"
+                type="date"
+                required
+            /></label>
+            <label
+              >Конец интервала<input
+                name="end_date"
+                type="date"
                 required
             /></label>
             <label
               >Аудитория / место<input name="room" required maxlength="100"
             /></label>
-            <button class="button" type="submit">Предложить расписание</button>
+            <button class="button" type="submit">Сохранить назначения</button>
           </form>
           <form id="agreement" class="workflow-form">
             <label
@@ -115,8 +122,23 @@
                 <option value="false">Отклонить</option>
               </select></label
             >
+            <label>Дата и время (Москва)<input name="scheduled_at" type="datetime-local" /></label>
             <label>Комментарий<input name="comment" maxlength="2000" /></label
             ><button class="button">Сохранить решение</button>
+          </form>
+          <h2>График ПОЗ факультета</h2>
+          <form id="faculty-schedule" class="workflow-form">
+            <label>Факультет<select name="faculty_id" data-catalog="faculties" required></select></label>
+            <label>PDF<input name="file" type="file" accept="application/pdf,.pdf" /></label>
+            <button type="submit" class="button">Загрузить график</button>
+            <button type="button" id="schedule-status" class="button">Посмотреть статус</button>
+            <button type="button" id="schedule-download" class="button">Скачать PDF</button>
+            <p id="schedule-state"></p>
+          </form>
+          <form id="schedule-review" class="workflow-form">
+            <label>Решение<select name="approved"><option value="true">Принять</option><option value="false">Отклонить</option></select></label>
+            <label>Замечание<input name="comment" maxlength="2000" /></label>
+            <button type="submit" class="button">Сохранить решение</button>
           </form>
           <label
             >Подписывающее лицо графика<input

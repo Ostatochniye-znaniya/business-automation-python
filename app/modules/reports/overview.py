@@ -55,7 +55,9 @@ class ReportOverviewService:
             )
 
         if actor.role == UserRole.TEACHER:
-            query = query.where(KnowledgeTest.teacher_id == actor.id)
+            from app.modules.testing.workflow import TestingWorkflow
+
+            query = query.where(TestingWorkflow.teacher_scope(actor.id))
         elif actor.role not in MANAGERS:
             ids = await departments.subtree_ids(actor.department_id)
             scope = groups_in(ids)
@@ -100,6 +102,12 @@ class ReportOverviewService:
 
         rows = []
         for test, report, group, discipline, period, teacher, program in records:
+            teachers = [await self.session.get(User, a.teacher_id) for a in test.assignments]
+            teacher_name = (
+                ", ".join(t.full_name for t in teachers)
+                if teachers
+                else (teacher.full_name if teacher else None)
+            )
             faculty = faculty_of(group, program)
             unit = units.get(discipline.department_id)
             total, participated = totals.get(group.id, 0), participants.get(test.id, 0)
@@ -122,7 +130,7 @@ class ReportOverviewService:
                     department_name=unit.name if unit else None,
                     discipline_id=discipline.id,
                     discipline_name=discipline.name,
-                    teacher_name=teacher.full_name if teacher else None,
+                    teacher_name=teacher_name,
                     previous_teacher_name=report.previous_teacher_name if report else None,
                     electronic_status=electronic,
                     electronic_comment=report.electronic_comment if report else None,
