@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime, timedelta
 from zipfile import ZipFile
 
 import pytest
+from pypdf import PdfReader
 
 from app.core.config import get_settings
 from app.core.enums import DepartmentType, KnowledgeTestStatus, UserRole
@@ -640,6 +641,75 @@ async def test_dashboard_counts_and_pdf(client, workflow):
     response = await client.get("/api/exports/schedule/1.pdf")
     assert response.status_code == 200, response.text
     assert response.content.startswith(b"%PDF-")
+
+
+@pytest.mark.parametrize(
+    ("excluded_status", "excluded_agreement"),
+    [
+        pytest.param(KnowledgeTestStatus.PLANNED, "PROPOSED", id="proposed"),
+        pytest.param(KnowledgeTestStatus.PLANNED, "REJECTED", id="rejected"),
+        pytest.param(KnowledgeTestStatus.CANCELLED, "AGREED", id="cancelled"),
+    ],
+)
+async def test_pdf_schedule_exports_only_agreed_non_cancelled_checks(
+    client, workflow, excluded_status, excluded_agreement
+):
+    session = workflow["session"]
+    period = await session.get(Period, 1)
+    period.start_date = date(2026, 11, 22)
+    period.end_date = date(2026, 11, 26)
+    session.add_all(
+        [
+            StudyGroup(id=2, name="261-002", department_id=2),
+            StudyGroup(id=3, name="261-003", department_id=2),
+        ]
+    )
+    await session.flush()
+    session.add_all(
+        [
+            KnowledgeTest(
+                period_id=1,
+                group_id=1,
+                discipline_id=1,
+                teacher_id=3,
+                scheduled_at=datetime(2026, 11, 22, 22, 15),
+                room="А-101",
+                agreement_status="AGREED",
+            ),
+            KnowledgeTest(
+                period_id=1,
+                group_id=2,
+                discipline_id=2,
+                teacher_id=3,
+                scheduled_at=datetime(2026, 11, 24, 10, 30),
+                room="Б-202",
+                agreement_status="AGREED",
+                status=KnowledgeTestStatus.COMPLETED,
+            ),
+            KnowledgeTest(
+                period_id=1,
+                group_id=3,
+                discipline_id=2,
+                teacher_id=3,
+                scheduled_at=datetime(2026, 11, 25, 12, 0),
+                room="В-303",
+                agreement_status=excluded_agreement,
+                status=excluded_status,
+            ),
+        ]
+    )
+    await session.commit()
+
+    response = await client.get("/api/exports/schedule/1.pdf")
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"] == "application/pdf"
+
+    pdf = PdfReader(io.BytesIO(response.content))
+    text = " ".join(" ".join(page.extract_text() for page in pdf.pages).split())
+    assert "261-001 Дисциплина 1 Кафедра Преподаватель 23.11.2026 01:15 А-101" in text
+    assert "261-002 Дисциплина 2 Кафедра Преподаватель 24.11.2026 13:30 Б-202" in text
+    assert "261-003" not in text
+    assert "В-303" not in text
 
 
 async def test_import_is_atomic_and_preserves_existing_roles(client, workflow):
