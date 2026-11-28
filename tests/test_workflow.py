@@ -168,7 +168,7 @@ async def test_admin_checks_are_restricted_to_admin(client, workflow, role):
     assert (await client.get("/api/administration/checks/1")).status_code == 403
 
 
-async def prepare_test(client, context):
+async def prepare_agreed_test(client, context):
     context["actor"] = UserRead.model_validate(context["users"][1])
     response = await client.put(
         "/api/workflow/participation",
@@ -190,6 +190,11 @@ async def prepare_test(client, context):
     assert (
         await client.put(f"/api/workflow/testing/{identifier}/agreement", json={"approved": True})
     ).status_code == 200
+    return identifier
+
+
+async def prepare_test(client, context):
+    identifier = await prepare_agreed_test(client, context)
     assert (
         await client.put(
             "/api/results",
@@ -204,6 +209,95 @@ async def prepare_test(client, context):
     ).status_code == 200
     assert (await client.post(f"/api/results/complete/{identifier}")).status_code == 200
     return identifier
+
+
+async def test_result_preserves_zero_grades(client, workflow):
+    identifier = await prepare_agreed_test(client, workflow)
+    response = await client.put(
+        "/api/results",
+        json={
+            "knowledge_test_id": identifier,
+            "student_id": 1,
+            "intermediate_result": 0,
+            "testing_result": 0,
+            "participation_status": "PASSED",
+        },
+    )
+    assert response.status_code == 200, response.text
+
+    result_id = response.json()["id"]
+    saved = await client.get(f"/api/results/{result_id}")
+    assert saved.status_code == 200, saved.text
+    result = saved.json()
+    assert result["intermediate_result"] == 0
+    assert result["testing_result"] == 0
+    assert result["participation_status"] == "PASSED"
+
+
+async def test_result_rejects_student_from_another_group(client, workflow):
+    identifier = await prepare_agreed_test(client, workflow)
+    session = workflow["session"]
+    session.add(StudyGroup(id=2, name="261-002", department_id=2))
+    await session.flush()
+    session.add(Student(id=2, full_name="Студент другой группы", group_id=2))
+    await session.commit()
+
+    response = await client.put(
+        "/api/results",
+        json={
+            "knowledge_test_id": identifier,
+            "student_id": 2,
+            "testing_result": 4,
+            "participation_status": "PASSED",
+        },
+    )
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"] == "Студент не относится к группе проверки"
+
+    results = await client.get("/api/results", params={"knowledge_test_id": identifier})
+    assert results.status_code == 200, results.text
+    assert results.json() == []
+
+
+async def test_results_require_participation_status_for_entire_group(client, workflow):
+    identifier = await prepare_agreed_test(client, workflow)
+    session = workflow["session"]
+    session.add(Student(id=2, full_name="Второй студент группы", group_id=1))
+    await session.commit()
+
+    first = await client.put(
+        "/api/results",
+        json={
+            "knowledge_test_id": identifier,
+            "student_id": 1,
+            "testing_result": 4,
+            "participation_status": "PASSED",
+        },
+    )
+    assert first.status_code == 200, first.text
+
+    complete_url = f"/api/results/complete/{identifier}"
+    incomplete = await client.post(complete_url)
+    assert incomplete.status_code == 422, incomplete.text
+    assert incomplete.json()["detail"] == "Заполните статус участия каждого студента группы"
+
+    check = await client.get(f"/api/testing/{identifier}")
+    assert check.status_code == 200, check.text
+    assert check.json()["status"] == "IN_PROGRESS"
+
+    absent = await client.put(
+        "/api/results",
+        json={
+            "knowledge_test_id": identifier,
+            "student_id": 2,
+            "participation_status": "ABSENT",
+        },
+    )
+    assert absent.status_code == 200, absent.text
+
+    completed = await client.post(complete_url)
+    assert completed.status_code == 200, completed.text
+    assert completed.json()["status"] == "COMPLETED"
 
 
 async def test_full_report_lifecycle(client, workflow):
